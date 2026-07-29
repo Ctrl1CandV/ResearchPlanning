@@ -59,7 +59,7 @@ facts → research → tools → jobs → skills → portfolio → app
 | `DATA` | `meta, corrections, advisor, rules, partners, employment, wafNote` |
 | `RESEARCH` | `positioning, angles(5), angleAdvice, reading(69 篇), saturated, rivals, rivalJudgement, repos(14), repoPath, datasets, dualTrack, metrics, plan90(12), fallback, translate, pitch, reportDeck, reportTips, firstMail` |
 | `TOOLS` | `disclaimer, discover, manage, reading, experiment, writing, ai, submit, advisor, noteTemplate, evidenceWorkflow, reproducibilityChecklist, submissionChecklist, monthly` |
-| `JOBS` | `meta, stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(5), risks, verification(12)` |
+| `JOBS` | `meta, cityPolicy, stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(7), risks, verification(12)` |
 | `SKILLS` | `meta, signals(19), roadmap(13), interviewTracks(4)` |
 | `PORTFOLIO` | `projects(2), principles, narratives, resumeBullets, storyTemplate, applicationPriority` |
 
@@ -74,6 +74,23 @@ facts → research → tools → jobs → skills → portfolio → app
 
 // JOBS.verification[] —— 待核验项
 { id, area, title, impact, status, evidence, action }
+
+// JOBS.cityPolicy —— 地域偏好的唯一定义处（见第 4.1 节）
+// phases[].cities[].rank 就是投递优先级，渲染层按它排序，不按样本量排序
+{ headline, phases[{ id, label, window, rule, cities[{ name, rank, role, why }] }],
+  excluded: { cities[], rule, use }, tension }
+
+// JOBS.regions[] —— 各城市策略明细
+// phase: 'study' | 'employment' | 'excluded'；rank 与 cityPolicy 保持一致，北京固定 99
+{ city, phase, rank, role, tier, sample, strategy, risk }
+
+// JOBS.stats.cities[] —— 城市记录分布
+// fit 决定分组：target=意向城市 / excluded=北京 / other=与决策无关
+// tech 为该城市技术岗数，null 表示未单独统计
+{ city, count, pct, tech, fit }
+
+// JOBS.stats.cityReach[] —— 去重后的可投池测算（不是各城市相加）
+{ label, value, note }
 
 // SKILLS.signals[] —— 市场信号（百分比是文本命中率，不是硬要求率）
 { id, name, domain, baidu, tencent, priority, judgement }
@@ -121,21 +138,31 @@ facts → research → tools → jobs → skills → portfolio → app
 
 地域是**硬约束，优先于岗位匹配度**。一个方向再对口，城市不符也不能标成主投目标。
 
-| 阶段 | 可接受城市 | 说明 |
+**唯一事实源是 `JOBS.cityPolicy`**，岗位页开头就渲染它。改地域偏好只改这一处，不要散落到各段文案里。
+
+| 阶段 | 城市与顺序 | 说明 |
 |---|---|---|
-| 读研期间（研一—研三） | 重庆、成都 | 重庆是驻地；成都在 1—2 小时高铁圈，是唯一现实的跳板 |
-| 毕业后（2029 起） | 杭州（首选）、深圳、广州、上海 | 杭州优先级最高 |
-| 任何阶段 | **北京不作为投递目标** | 除非该岗位明确支持远程 |
+| 读研期间（2026.09—2029.06） | 1 重庆 → 2 成都 | 重庆是驻地；成都在 1—2 小时高铁圈，是唯一现实的跳板 |
+| 毕业就业（2029 起） | 1 杭州 → 2 上海 → 3 深圳 → 4 广州 | **顺序即偏好强度**，由 `rank` 表达 |
+| 任何阶段 | **北京不投递** | 除非该岗位明确支持远程 |
+
+`cityPolicy.phases[].cities[].rank` 是渲染排序依据，`JOBS.regions[].rank` 必须与它保持一致（渲染层按 `rank` 排序，不按样本量）。改偏好顺序时两处都要改。
 
 对应的 `cityFit` 取值：
 
-- `preferred` —— 命中首选城市（重庆/成都读研期；杭州毕业后）
-- `acceptable` —— 可接受但非首选（深圳、广州、上海）
+- `preferred` —— 命中该阶段的首选城市（读研期重庆/成都；毕业期杭州）
+- `acceptable` —— 在意向列表内但非首选（上海、深圳、广州）
 - `avoid` —— **纯北京岗位。保留它们只为「能力情报」**：从 JD 反推能力要求与作品集包装方式，不用于投递。这类条目应同时满足 `targetTier:'secondary'`、`tier:'C'`、`opening` 写明「不投递」。
 
 > 不要因为北京岗位方向好就把它升回 `primary`/`S`。第一版就是这么做的：12 个代表岗位里 6 个涉及北京且都标为 S/A，而毕业首选的杭州一个都没有，整页策略与真实意向相反。
 
-**两个目标池是数据缺口，不是已核验岗位**：`hz-target-pool`（杭州）和 `cd-hz-winter-pool`（研二寒假成都/杭州）都标为 `needsVerification`，因为本轮 1912 条快照没有覆盖这些雇主。补数据时按抓腾讯/百度的同样方法补样本，再把这两条替换为具体团队，并同步销掉 `verify-hz-jobs` / `verify-cd-student-base` 两个核验项。
+**页面顺序也是策略的一部分**：岗位页先讲地域约束，再讲岗位族与样本，最后才折叠展示百度快照口径。不要把数据口径挪回开头——北京占 84.2%，放在开头会让整页第一印象变成「机会都在北京」，与真实意向相反。
+
+**城市分布图按 `fit` 分组**（`target` / `excluded` / `other`），不按记录数排序。北京柱条固定进 `excluded` 组并降饱和显示。新增城市时必须同时给 `fit`，否则不会出现在任何分组里。
+
+**两个目标池是数据缺口，不是已核验岗位**：`hz-target-pool`（杭州）和 `cd-hz-winter-pool`（研二寒假成都/杭州）都标为 `needsVerification`，因为本轮 1912 条快照没有覆盖这些雇主。补数据时按抓腾讯/百度的同样方法补样本，再把这两条替换为具体团队，并同步销掉 `verify-hz-teams` / `verify-cd-student-hc` 两个核验项。
+
+> **杭州技术岗样本为 0，这不是笔误。** 1287 条里杭州只有 7 条记录且技术岗为 0——首选城市恰好证据最薄。`cityPolicy.tension` 就是在说这件事：偏好顺序与证据强度不一致时，要补数据，而不是改偏好。
 
 > `roleFamily` 用连字符（`ai-app`），不是驼峰（`aiApp`）。第一版曾因这个不一致导致「AI 应用」筛选永远为空。
 >
@@ -167,12 +194,66 @@ facts → research → tools → jobs → skills → portfolio → app
 
 - **路由**：`location.hash`，未知 hash 回退到 `dashboard`。
 - **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / timeline / checkList / filterGroup / claimBadge / evidenceBadge`。
-- **`escapeHtml()` vs `rich()`**：
-  - `escapeHtml()` 用于所有可能来自外部的文本（岗位名、JD 摘要、搜索词）。
-  - `rich()` **不转义**，只允许用于仓库内自己写的、含 `<b>/<br>/<code>` 的策展字符串。
-  - 以后若从 API/issue 同步数据，**必须走 `escapeHtml()`**，否则就是 XSS 入口。
+- **三个转义函数，按数据来源选**：
+  - `escapeHtml()` —— 默认选择。用于所有纯文本字段（岗位名、城市、搜索词）。
+  - `safeRich()` —— **先整体转义，再放回极小的白名单标签**（`b` `strong` `em` `code` `br`，且只认不带属性的裸标签）。用于策展文本里含 `<b>` 强调的字段：`teams[].summary`、`regions[].strategy`、`regions[].risk`、`RESEARCH.translate`。这类字段以前走 `escapeHtml()`，结果 `<b>` 被当字面量显示成 `&lt;b&gt;`；改用 `safeRich()` 后强调正常生效，`<script>`、`<img onerror>`、`<b onclick=...>` 仍全部保持转义。
+  - `rich()` —— **完全不转义**，只允许用于仓库内手写、结构更复杂的 HTML 片段（`callout` 正文、`kv(rows, true)`）。
+  - 以后若从 API/issue 同步数据，**必须走 `escapeHtml()` 或 `safeRich()`，绝不能用 `rich()`**，否则就是 XSS 入口。
 - **容错**：`render()` 和搜索索引都包了 try/catch，单个板块数据出错会显示错误原因而不是整页白屏。
 - **滚动**：`render(true)` 保留滚动位置（筛选、勾选用），`render()` 回到顶部（切页用）。
+- **页内目录自动生成**：`buildPageToc()` 在每次渲染后扫描 `.page` 里的 `h3.sec`，≥3 个才注入右栏 `.page-toc`（少于 3 个时右栏是噪音）。**渲染器不需要维护章节清单**——新加一个 `section()` 会自动出现在目录里。
+  - 中文标题经 `slug()` 会退化成一串连字符，所以缺 id 的标题按 `sec-<序号>` 补，保证唯一且稳定。
+  - 高亮用 `IntersectionObserver`，并**按文档顺序**取第一个可见标题（不是按进入视口的先后），否则向上滚动会高亮错行。
+  - `tocObserver` 是模块级单例，每次重建前 `disconnect()`——不断开会随每次筛选逐个累积。
+
+---
+
+## 6.1 布局系统（改样式前必读）
+
+**不要再给 `.page` 加固定 `max-width`。** 第一版是 `max-width: 1180px` 左对齐，在 1920 屏上右侧有 488px（25%）完全空白，2560 屏上是 44%。
+
+现在是三栏流式外壳，所有横向尺寸由 `:root` 的七个 token 驱动：
+
+| token | 值 | 作用 |
+|---|---|---|
+| `--sidebar-w` | 256px | 左侧主导航 |
+| `--toc-w` | 224px | 右侧页内目录轨（原来的死白） |
+| `--shell-max` | 1840px | 超宽屏整体居中上限，留白左右对称 |
+| `--measure` | 76ch | **仅**用于长段落行宽，不用于卡片/表格 |
+| `--page-pad` | 38px | 左右内距**唯一来源** |
+| `--topbar-h` | 57px | sticky topbar 实高 |
+| `--gap` | 14px | 网格间距 |
+
+三条规则：
+
+1. **左右内距只改 `--page-pad`**，不要给单个元素写 `padding-left`。`.page`、`.topbar`、`.site-footer` 三者都从它派生，窄屏在 `@media` 里改 token 值即可，改动一处三者同步。若给某个元素单独加 padding，页脚横线会与正文错开（第一版就错了 4px）。
+2. **网格按最小可读宽度自适应，不锁列数。** `.grid.c2/c3/c4` 现在是 `repeat(auto-fit, minmax(min(100%, Npx), 1fr))`，`c2/c3/c4` 表示**内容密度档位**而非列数：宽屏自动多排一列，窄屏自动落一列，中间不需要断点。若改回 `repeat(2, 1fr)`，1800px 正文宽下会变成两张 900px 的巨卡。
+3. **限宽只加在文字上**。段落用 `--measure` 限宽保证可读；表格、卡片网格、图表应该吃满宽度。长清单（`.check-list`、`.paper-list`）在 ≥1500px 时用 `columns` 分两栏，避免单行拉到 1300px。
+
+`scroll-margin-top` 已全局挂在 `h3.sec / h4.sub / [id]` 上，值为 `--topbar-h + 20px`。**新增锚点目标不需要单独处理**；但若改了 topbar 高度，要同步 `--topbar-h`，否则锚点跳转会被吸顶栏盖住。
+
+---
+
+## 6.2 配色约束
+
+强调色是**蓝图靛** `#7d9bff`（浅色主题 `#4055c8`），不是第一版的亮青。
+
+**关键约束：绿 `--high` / 琥珀 `--mid` / 红 `--low` 三色已被「一手 / 二手 / 推断」占用，是内容语义而非装饰。** 强调色必须避开这三个色相，否则可靠度分级读不出来。`--info` 也因此从蓝移到青（`#38bdf8`），以免与靛色强调色混淆。
+
+改任何颜色后请复算对比度，正文与小字号文本都要 ≥ 4.5:1：
+
+```bash
+node -e 'const L=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255)
+.map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));
+return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+const R=(a,b)=>{const x=L(a),y=L(b);return ((Math.max(x,y)+.05)/(Math.min(x,y)+.05)).toFixed(2);};
+console.log("dim on card", R("#98a3b4","#141c2b"));
+console.log("faint on card", R("#7d8a9f","#141c2b"))'
+```
+
+`--text-dim` 与 `--text-faint` 承载的是统计标签、论文出处这类**真实元信息**，不是装饰，所以必须过 4.5:1。第一版这两个值分别只有 3.93 和 2.34。
+
+侧栏底部的**证据分级图例**是这套设计的签名元素：这份文档的核心纪律就是「不把推断当事实」，把色码常驻视野里，读者不必去猜绿黄红代表什么。不要为了腾空间删掉它。
 
 ---
 
@@ -207,10 +288,23 @@ node -e 'const a=require("./.jobs/baidu.json");
 const c=x=>a.filter(r=>r._rt===x).length;
 console.log(a.length,c("SOCIAL"),c("INTERN"),c("校招"),
 a.filter(r=>r.postType==="技术").length)'
+
+# 3) 可投池复算（改动 cityReach / cities[].tech 后必做）
+#    应得 304 含意向城市 / 197 其中技术岗 / 943 纯北京 / 203 完全不含北京
+#    注意：这里用「记录是否包含该城市」判定，不是各城市相加
+node -e 'const a=require("./.jobs/baidu.json");
+const W=["重庆","成都","杭州","上海","深圳","广州"];
+const has=(r,c)=>String(r.workPlace||"").includes(c);
+const want=r=>W.some(c=>has(r,c));
+console.log(a.filter(want).length,
+a.filter(r=>want(r)&&r.postType==="技术").length,
+a.filter(r=>has(r,"北京")&&!want(r)).length,
+a.filter(r=>!has(r,"北京")).length)'
 ```
 
-3) 浏览器冒烟：双击 `site/index.html`，逐一点开十个导航项，确认 F12 控制台无红色报错、页面无 `undefined`。
-4) 交互：任选一组筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个关键词点结果跳转、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
+4) 浏览器冒烟：双击 `site/index.html`，逐一点开十个导航项，确认 F12 控制台无红色报错、页面无 `undefined`。
+5) 交互：任选一组筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个关键词点结果跳转、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
+6) **地域顺序抽查**：打开 `#jobs`，确认页面第一屏是「地域约束」而不是百度快照；确认就业阶段顺序为 杭州 → 上海 → 深圳 → 广州；确认北京出现在「排除城市」分组且带「仅作情报」标记。
 
 ---
 

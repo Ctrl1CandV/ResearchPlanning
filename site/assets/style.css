@@ -4,42 +4,64 @@
    ============================================================ */
 
 :root {
-  /* 基础色板：深色为主，冷灰打底 + 青蓝作为唯一强调色 */
-  --bg:            #0b0e14;
-  --bg-elevated:   #11151f;
-  --bg-card:       #141922;
-  --bg-card-hover: #1a202b;
-  --bg-inset:      #0d1117;
+  /* ── 色板：靛蓝墨底 + 蓝图靛作为唯一强调色 ──
+     为什么不是「近黑 + 亮青」：那是通用暗色模板的默认解，与主题无关。
+     这份文档是一张三年蓝图，底色取墨蓝（带蓝味而非中性黑），
+     强调色取蓝图靛（periwinkle）。
+     关键约束：绿/琥珀/红三色已被「一手/二手/推断」占用，是内容语义，
+     强调色必须避开这三个色相，否则可靠度分级会读不出来。 */
+  --bg:            #0c111a;
+  --bg-elevated:   #111826;
+  --bg-card:       #141c2b;
+  --bg-card-hover: #1b2436;
+  --bg-inset:      #0a0f17;
 
-  --border:        #222a37;
-  --border-strong: #2f3a4c;
+  --border:        #202b3d;
+  --border-strong: #2f3f57;
 
-  --text:          #e4e8ef;
-  --text-soft:     #a4aebf;
-  --text-dim:      #6b7789;
-  --text-faint:    #4a5464;
+  /* 四级文字灰阶。dim/faint 承载的是统计标签、期刊名、来源行这类
+     真正要读的元信息，不是装饰，因此都按正文标准做到 4.5:1 以上
+     （旧值 #6d7a90 / #4c5769 在卡片上只有 3.9 / 2.3，等于看不清）。
+     层级靠「亮度step + 字号」共同表达，不靠把次要文字压到看不见。 */
+  --text:          #e6eaf2;
+  --text-soft:     #a6b1c4;
+  --text-dim:      #98a3b4;
+  --text-faint:    #7d8a9f;
 
-  --accent:        #4dd0e1;
-  --accent-deep:   #26a5b8;
-  --accent-glow:   rgba(77, 208, 225, 0.14);
+  --accent:        #7d9bff;   /* 蓝图靛：导航、章节、可交互元素 */
+  --accent-deep:   #4f6fe0;
+  --accent-glow:   rgba(125, 155, 255, 0.14);
 
-  /* 语义色：可靠度 / 优先级 / 状态 */
+  /* 语义色：可靠度分级，不可与强调色混用 */
   --high:    #4ade80;   /* 一手数据 / 高可靠 */
   --mid:     #fbbf24;   /* 二手转载 / 中可靠 */
   --low:     #f87171;   /* 推断 / 低可靠 */
-  --info:    #60a5fa;
+  --info:    #38bdf8;   /* 中性标签；改用青以与靛色强调色区分 */
   --purple:  #a78bfa;
 
   --radius:    10px;
   --radius-sm: 6px;
   --radius-lg: 14px;
 
-  --sidebar-w: 252px;
+  /* 三栏外壳：导航栏 / 流式内容 / 页内目录轨。
+     内容不再硬锁 1180px —— 那会在 1920 屏上留下 25% 的死白。
+     改为「流式 + 整体居中 + 分组件限宽」：正文按字数限宽保证可读，
+     表格与卡片网格可以吃满宽度。 */
+  --sidebar-w: 256px;
+  --toc-w:     224px;    /* 右侧页内目录轨，把原本的死白变成导航 */
+  --shell-max: 1840px;   /* 超宽屏上整体居中，留白对称而非全堆右侧 */
+  --measure:   76ch;     /* 长段落的可读行长上限 */
+  --page-pad:  38px;
+  --topbar-h:  57px;     /* sticky topbar 实高，供目录轨与锚点偏移对齐 */
+  --gap:       14px;
+
   --mono: "SF Mono", "JetBrains Mono", Consolas, "Cascadia Mono", monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
           "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 
   --shadow: 0 4px 24px rgba(0,0,0,.35);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.18);
+  --shadow-card: 0 1px 3px rgba(0,0,0,.22), 0 8px 24px -12px rgba(0,0,0,.3);
 }
 
 /* 浅色主题 */
@@ -53,17 +75,20 @@ body.light {
   --border-strong: #cbd3de;
   --text:          #1a1f28;
   --text-soft:     #4a5464;
-  --text-dim:      #78838f;
-  --text-faint:    #9aa3af;
-  --accent:        #0e8fa3;
-  --accent-deep:   #0a7285;
-  --accent-glow:   rgba(14, 143, 163, 0.10);
-  --high:   #16a34a;
+  --text-dim:      #5f6b7a;
+  --text-faint:    #657282;
+  /* 浅色下靛蓝要压深才有足够对比，直接沿用暗色的 #7d9bff 会发灰 */
+  --accent:        #4055c8;
+  --accent-deep:   #2f3fa0;
+  --accent-glow:   rgba(64, 85, 200, 0.09);
+  --high:   #15803d;
   --mid:    #b45309;
   --low:    #dc2626;
-  --info:   #2563eb;
+  --info:   #0369a1;   /* 与强调色同为冷色但色相分离，保持标签可辨 */
   --purple: #7c3aed;
   --shadow: 0 4px 20px rgba(20,30,50,.08);
+  --shadow-sm: 0 1px 2px rgba(20,30,50,.06);
+  --shadow-card: 0 1px 2px rgba(20,30,50,.06), 0 10px 24px -14px rgba(20,30,50,.14);
 }
 
 * { box-sizing: border-box; }
@@ -173,14 +198,17 @@ body {
   padding: 0 0 100px;
 }
 
+/* 顶栏背景铺满，但内容与正文对齐：用 max() 把内边距推到与 #app 同一条左边界，
+   避免超宽屏上「背景通栏、搜索框却贴在最左」的错位。 */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(14px);
+  min-height: var(--topbar-h);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--border);
-  padding: 11px 34px;
+  padding: 10px max(var(--page-pad), calc((100% - var(--shell-max)) / 2 + var(--page-pad)));
   display: flex;
   align-items: center;
   gap: 14px;
@@ -205,54 +233,141 @@ body {
 
 .topbar-spacer { flex: 1; }
 
-.page { padding: 30px 34px 0; max-width: 1180px; animation: fade .3s ease; }
+/* ── 三栏骨架：导航栏 / 流式正文 / 页内目录 ──
+   #app 是网格容器；.page-toc 由 app.js 在渲染后注入，所以渲染器无需改动。
+   正文不再定死 1180px —— 那是宽屏右侧大片空白的根因。 */
+#app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 30px;
+  width: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  align-items: start;
+}
+@media (min-width: 1240px) {
+  #app { grid-template-columns: minmax(0, 1fr) var(--toc-w); }
+}
+
+/* 左右内距与 topbar 同源，保证搜索框与正文左边界对齐 */
+.page { padding: 30px var(--page-pad) 0; min-width: 0; animation: fade .3s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 长段落仍需可读行宽，但卡片/表格/图表可以铺满 */
+.page > p,
+.page > .lede,
+.page-head .lede { max-width: var(--measure); }
+
+/* ── 页内目录（右栏） ── */
+.page-toc {
+  display: none;
+  position: sticky;
+  top: calc(var(--topbar-h) + 24px);
+  max-height: calc(100vh - var(--topbar-h) - 48px);
+  overflow-y: auto;
+  padding: 30px 26px 24px 0;
+  font-size: 12.5px;
+}
+@media (min-width: 1240px) { .page-toc { display: block; } }
+
+.page-toc .toc-title {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding-bottom: 9px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.page-toc a {
+  display: block;
+  padding: 5px 11px;
+  margin-bottom: 1px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-dim);
+  line-height: 1.5;
+  transition: color .14s, background .14s, border-color .14s;
+}
+.page-toc a:hover { color: var(--text); background: var(--bg-card-hover); border-bottom-color: transparent; }
+.page-toc a.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-glow);
+  font-weight: 600;
+}
 
 /* ─────────────── 排版 ─────────────── */
 
-.page-head { margin-bottom: 26px; }
+/* 页头：标题流式放大，副题限制行长。
+   eyebrow 用等宽小字承担「这一页在讲什么范畴」，与正文明显分层。 */
+.page-head {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
 .page-head .eyebrow {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 1.4px;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 7px;
+  margin-bottom: 9px;
 }
 .page-head h2 {
-  margin: 0 0 9px;
-  font-size: 25px;
-  font-weight: 650;
-  letter-spacing: -.3px;
+  margin: 0 0 10px;
+  font-size: clamp(24px, 1.1vw + 20px, 31px);
+  font-weight: 660;
+  letter-spacing: -.5px;
+  line-height: 1.25;
 }
 .page-head .lede {
   margin: 0;
   color: var(--text-soft);
   font-size: 14.5px;
-  max-width: 78ch;
+  max-width: var(--measure);
 }
 
+/* sticky topbar 会盖住跳转目标，所有锚点目标都要预留偏移 */
+h3.sec,
+h4.sub,
+[id] { scroll-margin-top: calc(var(--topbar-h) + 20px); }
+
+/* 章节标题：贯通整栏的细线 + 左侧色标。
+   原来 16.5px 与正文 14.5px 几乎同级，扫读时找不到分界，所以拉开字号并加分隔线。 */
 h3.sec {
-  margin: 38px 0 15px;
-  font-size: 16.5px;
-  font-weight: 640;
+  margin: 44px 0 17px;
+  font-size: 19px;
+  font-weight: 650;
   display: flex;
   align-items: center;
-  gap: 9px;
-  letter-spacing: -.1px;
+  gap: 10px;
+  letter-spacing: -.25px;
+  line-height: 1.4;
 }
 h3.sec::before {
   content: "";
-  width: 3px; height: 15px;
+  width: 3px;
+  height: 17px;
   background: var(--accent);
   border-radius: 2px;
   flex: 0 0 3px;
 }
+/* 标题右侧补一条延伸到栏尾的细线，界定章节起点 */
+h3.sec::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
 h4.sub {
-  margin: 24px 0 11px;
+  margin: 26px 0 11px;
   font-size: 14px;
-  font-weight: 620;
-  color: var(--text);
+  font-weight: 640;
+  color: var(--text-soft);
+  font-family: var(--mono);
+  letter-spacing: .2px;
 }
 
 p { margin: 0 0 12px; }
@@ -279,15 +394,22 @@ li { margin-bottom: 5px; }
   border-radius: var(--radius);
   padding: 17px 19px;
   margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .16s, box-shadow .16s;
 }
+.card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-card); }
+/* 网格里的卡片等高对齐，避免同排卡片高低不齐显得凌乱 */
+.grid > .card { margin-bottom: 0; height: 100%; }
 .card.pad-lg { padding: 22px 24px; }
 
-.grid { display: grid; gap: 14px; }
-.grid.c2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
-.grid.c3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
-.grid.c4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
-@media (max-width: 1080px) { .grid.c3, .grid.c4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-@media (max-width: 720px)  { .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: 1fr; } }
+/* 卡片网格按「最小可读宽度」自适应，不锁死列数。
+   c2/c3/c4 现在表示「卡片内容的密度档位」而非固定列数：
+   宽屏会自动多排一列，窄屏自动落到一列，中间不需要断点堆叠。
+   这样 1800px 正文宽下 c2 是 4 列而不是两张 900px 的巨卡。 */
+.grid { display: grid; gap: var(--gap); }
+.grid.c2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); }
+.grid.c3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
+.grid.c4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 216px), 1fr)); }
 
 /* 统计块 */
 .stat {
@@ -297,6 +419,7 @@ li { margin-bottom: 5px; }
   padding: 15px 17px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .stat::after {
   content: "";
@@ -305,7 +428,15 @@ li { margin-bottom: 5px; }
   background: var(--accent);
   opacity: .55;
 }
-.stat .k { font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: -.8px; line-height: 1.2; }
+/* 数字用等宽字形对齐，避免同排统计块的位数跳动 */
+.stat .k {
+  font-family: var(--mono);
+  font-size: clamp(22px, 1.5vw, 27px);
+  font-weight: 600;
+  letter-spacing: -.8px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
 .stat .l { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
 .stat .n { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; line-height: 1.55; }
 .stat.warn::after { background: var(--mid); }
@@ -503,7 +634,13 @@ details.acc > summary .spacer { flex: 1; }
 
 /* ─────────────── 勾选项 ─────────────── */
 
+/* 清单在宽屏分栏排布：单列铺满 1800px 会让每行短文字拖出极长的空白右侧。
+   用 columns 而非 grid，条目高度不等时不会产生参差的空格。 */
 .check-list { display: flex; flex-direction: column; gap: 2px; }
+@media (min-width: 1500px) {
+  .check-list { display: block; columns: 2; column-gap: 26px; }
+  .check-list > .chk { break-inside: avoid; }
+}
 .chk {
   display: flex;
   align-items: flex-start;
@@ -515,7 +652,8 @@ details.acc > summary .spacer { flex: 1; }
   border: 1px solid transparent;
 }
 .chk:hover { background: var(--bg-card-hover); }
-.chk input { display: none; }
+/* 注意：不要在这里写 display:none —— 那会让 input 无法获得焦点，
+   键盘用户就再也勾不上了。真正的隐藏由文件末尾的 .sr-only/.chk input 剪裁规则完成。 */
 .chk .box {
   width: 16px; height: 16px;
   flex: 0 0 16px;
@@ -617,7 +755,8 @@ body.light .chk input:checked + .box::after { border-color: #fff; }
 
 /* ─────────────── 对比矩阵 ─────────────── */
 
-.matrix { display: grid; gap: 12px; }
+/* 切口卡含 kv 表与评分格，最小宽度比普通卡片大 */
+.matrix { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
 .mx-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -706,9 +845,22 @@ body.light .chk input:checked + .box::after { border-color: #fff; }
 
 .empty { padding: 40px; text-align: center; color: var(--text-faint); font-size: 13.5px; }
 
-.legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 11px 15px; background: var(--bg-inset); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 12px; color: var(--text-dim); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+/* 证据分级图例：常驻侧栏底部。
+   这是全站唯一「解释色码含义」的地方——一手/二手/推断的绿黄红
+   在正文里到处出现，图例让它们不需要被猜。 */
+.legend {
+  display: flex;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  padding: 9px 11px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: 11px var(--mono);
+  color: var(--text-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex: 0 0 6px; }
 
 .toggle-theme { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim); cursor: pointer; }
 .toggle-theme:hover { color: var(--text); }
@@ -730,10 +882,11 @@ body.light .chk input:checked + .box::after { border-color: #fff; }
 .sidebar-toggle { display: none; }
 
 @media (max-width: 900px) {
+  /* 只改 --page-pad，正文 / topbar / 页脚会一起跟随，不必逐个覆写 */
+  :root { --page-pad: 18px; }
   .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform .25s; }
   body.nav-open .sidebar { transform: none; box-shadow: var(--shadow); }
   .sidebar-toggle { display: inline-flex; }
-  .page, .topbar { padding-left: 18px; padding-right: 18px; }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -866,9 +1019,23 @@ a:focus-visible {
 .metric-slot .ml { margin-top: 3px; font-size: 11.5px; color: var(--text-faint); }
 
 .score-grid { display: grid; grid-template-columns: repeat(5, minmax(58px, 1fr)); gap: 8px; margin-top: 12px; }
-.score-item { padding: 7px 8px; background: var(--bg-inset); border-radius: var(--radius-sm); }
+.score-item {
+  padding: 7px 9px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
 .score-item b { display: block; font: 600 13px var(--mono); color: var(--accent); }
-.score-item span { display: block; color: var(--text-faint); font-size: 10.5px; }
+/* 只作用于标签文本；.stars 也是 span，不能被这条规则改掉字号与颜色 */
+.score-item > span:not(.stars) {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  letter-spacing: .2px;
+}
+.score-item .stars { font-size: 11px; letter-spacing: .5px; }
 
 .city-bars { display: grid; gap: 9px; }
 .city-row { display: grid; grid-template-columns: 62px 1fr 62px; align-items: center; gap: 10px; font-size: 12px; }
@@ -885,13 +1052,20 @@ a:focus-visible {
 .copy-block .copy-action { position: absolute; right: 10px; top: 10px; }
 .code-copy { padding-right: 84px; }
 
+/* 与 .page / .topbar 共用 --page-pad，三者左右对齐由单一变量决定 */
 .site-footer {
-  max-width: 1180px;
-  margin: 56px 34px 0;
-  padding: 18px 0 30px;
-  border-top: 1px solid var(--border);
+  max-width: var(--shell-max);
+  margin: 56px auto 0;
+  padding: 18px var(--page-pad) 30px;
   color: var(--text-faint);
   font-size: 11.5px;
+}
+.site-footer::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: 18px;
+  background: var(--border);
 }
 .noscript { position: fixed; inset: auto 20px 20px; z-index: 100; padding: 12px; background: var(--low); color: white; border-radius: var(--radius); }
 
@@ -902,7 +1076,6 @@ a:focus-visible {
 @media (max-width: 900px) {
   body.nav-open { overflow: hidden; }
   body.nav-open .nav-overlay { display: block; }
-  .site-footer { margin-left: 18px; margin-right: 18px; }
 }
 
 @media (max-width: 560px) {
@@ -993,13 +1166,13 @@ a:focus-visible {
 .bar-chart { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .bar-row {
   display: grid;
-  grid-template-columns: 68px 1fr 54px 52px;
+  grid-template-columns: 68px 1fr 54px 76px;
   align-items: center;
   gap: 10px;
   font-size: 12.5px;
 }
 .bar-row b { font-family: var(--mono); text-align: right; }
-.bar-row small { color: var(--text-faint); font-family: var(--mono); }
+.bar-row small { color: var(--text-faint); font-family: var(--mono); text-align: right; }
 
 .evidence-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 
@@ -1052,13 +1225,120 @@ a:focus-visible {
 
 .checklist-card .progress-line { margin-top: 0; }
 .paper-list { padding: 8px 10px; }
+/* 69 篇论文单列铺满宽屏会让每条拉成一行超长文本，宽屏改双栏 */
+@media (min-width: 1560px) {
+  .paper-list { columns: 2; column-gap: 30px; }
+  .paper-list > .paper { break-inside: avoid; }
+}
 .filter-stack { flex-direction: column; align-items: stretch; gap: 9px; }
 .rival.bad { border-left: 3px solid var(--low); }
 .rival.warn { border-left: 3px solid var(--mid); }
 .score-grid.compact { gap: 6px; }
 
 @media (max-width: 560px) {
-  .bar-row { grid-template-columns: 56px 1fr 44px 46px; gap: 7px; }
+  .bar-row { grid-template-columns: 52px 1fr 40px 62px; gap: 7px; }
   .card-head, .project-head { flex-direction: column; }
   .story-step { flex-basis: 100%; }
+}
+
+/* ─────────── 地域约束：阶段卡 + 偏好排序 ───────────
+   视觉优先级刻意与决策优先级一致：意向城市实心强调，排除城市降饱和。 */
+
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(288px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.phase-card {
+  display: flex;
+  flex-direction: column;
+  padding: 17px 19px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+.phase-card.excluded {
+  border-left-color: var(--low);
+  background: color-mix(in srgb, var(--low) 3%, var(--bg-card));
+}
+
+.phase-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.phase-head strong { font-size: 14.5px; line-height: 1.45; }
+
+.phase-rule {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-soft);
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.phase-card.excluded .phase-rule { border-bottom: 0; padding-bottom: 0; margin-bottom: 8px; }
+
+/* 排序列表：序号即投递优先级，不用项目符号 */
+.city-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.city-rank-item { display: flex; gap: 11px; margin: 0; }
+.city-rank-item .rank {
+  flex: 0 0 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font: 600 11.5px var(--mono);
+  margin-top: 1px;
+}
+.city-rank-item:first-child .rank { background: var(--accent); color: var(--bg); }
+body.light .city-rank-item:first-child .rank { color: #fff; }
+
+.city-body { flex: 1; min-width: 0; }
+.city-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.city-line b { font-size: 14px; }
+.city-sample { font: 10.5px var(--mono); color: var(--text-faint); }
+.city-body p { margin: 3px 0 0; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
+
+/* 城市分布图：按 fit 分组，避免北京 84.2% 的长条支配整张图 */
+.city-group { margin-bottom: 14px; }
+.city-group:last-child { margin-bottom: 0; }
+.city-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-bottom: 7px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.city-group-head b { font-size: 12.5px; }
+.city-group-head span { font-size: 11.5px; color: var(--text-faint); }
+
+.city-group.grp-target .city-group-head b { color: var(--accent); }
+.city-group.grp-excluded .city-group-head b { color: var(--low); }
+.city-group.grp-excluded .bar > i { background: var(--low); opacity: .5; }
+.city-group.grp-other { opacity: .62; }
+.city-group.grp-other .bar > i { background: var(--text-faint); }
+
+.region-card.region-excluded { opacity: .72; border-left: 3px solid var(--low); }
+.region-risk {
+  margin-top: 9px;
+  padding: 8px 11px;
+  background: var(--bg-inset);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.region-risk b { color: var(--mid); font-weight: 600; margin-right: 4px; }
+
+@media (max-width: 560px) {
+  .phase-grid { grid-template-columns: 1fr; }
+  .phase-head { flex-direction: column; }
 }
