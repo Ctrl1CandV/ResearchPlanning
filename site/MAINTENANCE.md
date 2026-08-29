@@ -4,7 +4,7 @@
 
 - 站点入口：`site/index.html`，双击即可打开（`file://`），也可用任意静态服务器。
 - 技术栈：原生 HTML/CSS/JS，**零依赖、无构建、无网络请求**。
-- 数据截止：2026-07-28。
+- 数据修订至 2026-08-28（招聘快照数据仍为 2026-07-28 抓取）。两轮修订：① 北京中转政策、论文主线转向、作品集对齐真实仓库、本地 PDF 阅读库；② 阅读页重构为「公共必读 + 方向路线」、工具链缩编为速查卡（方法论移交 grad-companion 插件）、求职资产降级为方向参考、技能路线补学习参考。
 
 ---
 
@@ -16,12 +16,13 @@ site/
 ├── assets/
 │   ├── style.css       全部样式（设计令牌 + 组件 + 响应式 + 打印）
 │   └── app.js          渲染器、路由、搜索、筛选、会话状态
+├── papers/             47 篇必读论文的本地 PDF（<arXiv id>.pdf，约 122 MB）
 └── data/
     ├── facts.js        window.DATA       现实基线（导师、制度、校企、就业）
-    ├── research.js     window.RESEARCH   研究主线、阅读清单、90 天计划
-    ├── tools.js        window.TOOLS      科研工具链与规范
+    ├── research.js     window.RESEARCH   研究主线、公共/方向阅读清单、90 天计划
+    ├── tools.js        window.TOOLS      工具速查卡（方法论已移交插件）
     ├── jobs.js         window.JOBS       招聘快照、岗位、实习阶梯、待核验
-    ├── skills.js       window.SKILLS     技能信号与学习路线
+    ├── skills.js       window.SKILLS     技能信号、学习路线（含学习参考）
     └── portfolio.js    window.PORTFOLIO  作品集与求职叙事
 ```
 
@@ -45,8 +46,10 @@ facts → research → tools → jobs → skills → portfolio → app
 
 - **不用框架、不用打包**：这是一份要用三年的个人决策文档。任何构建链在三年后都可能装不起来，而 `file://` 双击永远能打开。
 - **用经典脚本 + 全局变量，不用 ES module**：`file://` 下 ES module 会被 CORS 拦截，直接双击就白屏。
-- **不把 `.jobs/baidu.json`（2.26 MB，1287 条）放进页面**：站点只存可复算的聚合数字和 12 个代表岗位。原始数据留在 `.jobs/` 供复核。
-- **状态不持久化**：勾选/筛选/主题只存内存，刷新即重置。数据都带稳定 `id`，接持久化时按 id 落库即可（见第 7 节）。
+- **不把 `.jobs/baidu.json`（2.26 MB，1287 条）放进页面**：站点只存可复算的聚合数字和 14 个代表岗位。原始数据留在 `.jobs/` 供复核。
+- **PDF 直接放进 `site/papers/` 而不是外链**：阅读主线上「能立刻打开就开始读」是硬需求，arXiv 外链需要网络且页面会跳走。代价是仓库增重约 122 MB——相对「三年可离线使用」是值得的。新增本地 PDF 时文件名必须是 `<arXiv id>.pdf`（渲染层按此约定生成链接），下载后校验文件头为 `%PDF`。
+- **方法论不留在站里，归档进插件**：2026-08-28 起工具链页缩编为速查卡；三遍读法、实验纪律、写作投稿、伦理红线等完整方法论放在 `D:\Program Project\grad-companion\docs\RESEARCH-PLAYBOOK.md`（只新增文件、不改插件现有结构）。站内 `TOOLS` 只保留 core 速查、companion 指引与 monthly 清单。
+- **状态已持久化（2026-08-29 起）**：勾选/主题/阅读方向经 localStorage 保存在本机（键与降级策略见第 7 节）；筛选器仍是会话态。数据都带稳定 `id`，**不要改 id 命名规则**，否则已保存的勾选会失效。
 
 ---
 
@@ -56,12 +59,16 @@ facts → research → tools → jobs → skills → portfolio → app
 
 | 全局对象 | 顶层键 |
 |---|---|
-| `DATA` | `meta, corrections, advisor, rules, partners, employment, wafNote` |
-| `RESEARCH` | `positioning, angles(5), angleAdvice, reading(69 篇), saturated, rivals, rivalJudgement, repos(14), repoPath, datasets, dualTrack, metrics, plan90(12), fallback, translate, pitch, reportDeck, reportTips, firstMail` |
-| `TOOLS` | `disclaimer, discover, manage, reading, experiment, writing, ai, submit, advisor, noteTemplate, evidenceWorkflow, reproducibilityChecklist, submissionChecklist, monthly` |
-| `JOBS` | `meta, cityPolicy, stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(7), risks, verification(12)` |
-| `SKILLS` | `meta, signals(19), roadmap(13), interviewTracks(4)` |
-| `PORTFOLIO` | `projects(2), principles, narratives, resumeBullets, storyTemplate, applicationPriority` |
+| `DATA` | `meta, summary(要点), corrections(4), advisor, rules, partners, employment, wafNote` |
+| `RESEARCH` | `positioning, summary(要点), readingSummary(要点), angles(6), rejected(2), angleAdvice, reading{common(13), tracks(A—F 各含 pitch/fit/stages/papers/repos/datasets/note)}, metrics(8 组), plan90(12), plan90Switch, fallback(6), saturated(9), rivals(9), rivalJudgement, translate, pitch, reportDeck, reportTips, firstMail` |
+| `TOOLS` | `disclaimer, core(11 速查), companion, monthly` |
+| `JOBS` | `pageNote, meta, summary(要点), cityPolicy(phases×2 + transit), stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(7), risks, verifySummary(要点), verification(12)` |
+| `SKILLS` | `meta, summary(要点), signals(19), roadmap(13，每条含 refs 学习参考), interviewTracks(4)` |
+| `PORTFOLIO` | `projects(3), principles, narratives, resumeBullets(4，当前不渲染、2027 重做时启用), storyTemplate, applicationPriority` |
+
+`summary` / `readingSummary` / `verifySummary` 是**页面要点块**（`pageSummary` 组件渲染在页头下方，3—5 条）。
+文案必须从该页现有内容提炼，**不要新造结论**；页面内容更新时同步核对要点，防止要点与正文漂移。
+`dashboard / tools / career / portfolio` 四页没有要点块（各有定位说明或本身即速查）。
 
 ### 常用字段结构
 
@@ -76,38 +83,63 @@ facts → research → tools → jobs → skills → portfolio → app
 { id, area, title, impact, status, evidence, action }
 
 // JOBS.cityPolicy —— 地域偏好的唯一定义处（见第 4.1 节）
-// phases[].cities[].rank 就是投递优先级，渲染层按它排序，不按样本量排序
+// 2026-08 修订：原 excluded（北京不投递）已替换为 transit（北京中转）。
+// phases[].cities[].rank 是投递优先级，北京在就业阶段 rank=5，渲染层按它排序
 { headline, phases[{ id, label, window, rule, cities[{ name, rank, role, why }] }],
-  excluded: { cities[], rule, use }, tension }
+  transit: { cities[], rule, use, limit }, tension }
 
 // JOBS.regions[] —— 各城市策略明细
 // phase: 'study' | 'employment' | 'excluded'；rank 与 cityPolicy 保持一致，北京固定 99
 { city, phase, rank, role, tier, sample, strategy, risk }
 
 // JOBS.stats.cities[] —— 城市记录分布
-// fit 决定分组：target=意向城市 / excluded=北京 / other=与决策无关
+// fit 决定分组：target=意向城市 / transit=北京（中转） / other=与决策无关
 // tech 为该城市技术岗数，null 表示未单独统计
 { city, count, pct, tech, fit }
 
 // JOBS.stats.cityReach[] —— 去重后的可投池测算（不是各城市相加）
+// 2026-08 复算口径：意向城市 304 / 北京 943 / 总池 1247（技术岗 728）
 { label, value, note }
 
 // SKILLS.signals[] —— 市场信号（百分比是文本命中率，不是硬要求率）
 { id, name, domain, baidu, tencent, priority, judgement }
 
-// SKILLS.roadmap[] —— 学习路线
-{ id, name, priority, domain, target, deadline, deliverable, status }
+// SKILLS.roadmap[] —— 学习路线（2026-08 起每条带 refs 学习参考）
+{ id, name, priority, domain, target, deadline, deliverable, status,
+  refs: [{ kind: 'book'|'web'|'paper', label, url, local? }] }   // local=<ax> 指向 site/papers/<ax>.pdf
 
-// RESEARCH.reading.L0.items[] —— 论文条目
-// n=序号 t=标题 ax=arXiv y=年月 v=venue c=引用量 h=预计工时 why=为什么读
-// 可选：key=必精读  warn=撞方向
-{ n, t, ax, y, v, c, h, why }
+// RESEARCH.reading —— 「公共必读 + 方向私有路线」两层结构
+reading: {
+  common: { name, note, items: [论文条目] },        // 无论走哪个方向都要读；条目带 intro 扩充介绍
+  tracks: {
+    A: { name, pitch, fit,                          // 方向定位与导师/求职接口
+         stages: [{ k: '第 1—2 月', v: '做什么' }],  // 阶段路线，渲染为可视化 stepper
+         papers: [论文条目], repos: [{ r, note }], datasets: [{ n, d }], note }
+    // B—F 同构
+  }
+}
+
+// 论文条目（common 与 tracks 通用）
+// t=标题 ax=arXiv y=年月 v=venue c=引用量 h=预计工时 why=为什么读
+// 可选：key=必精读  warn=撞方向  pdf=true（site/papers/<ax>.pdf 已存在）
+// common 层另有 intro=两三句扩充介绍
+{ t, ax, y, v, c, h, why, pdf }
+
+// RESEARCH.angles[].scores —— 六维评分（2026-08 换标尺，旧版 fit/novel/cheap/first/safe 已废弃）
+{ value, novelty, falsifiable, feasible, resource, career }   // value 为 1-5 整数
+
+// RESEARCH.rejected[] —— 已拒绝方向存档（本人确认，防止重新发明）
+{ id, name, reason }
+
+// TOOLS —— 缩编后的速查结构
+{ disclaimer, core: [{ n, use, ref }], companion: { name, playbook, note }, monthly }
 
 // PORTFOLIO.projects[].metrics[] —— 四项核心指标
-{ key, label, value, status }   // value 为 null 时显示"待实测"
+// value 为 null 时显示"待实测"；status='preliminary' 表示 n=1 初步实测
+{ key, label, value, status }
 ```
 
-`reading` 的六层：`L0` 必读奠基 / `L1S` 综述 / `L1M` 代表方法 / `L1B` 评测基准 / `L2` 图学习 / `L3` 多 Agent。
+`reading` 不再按 L0—L4 分层（旧七层结构已废），而是**「公共必读 + 方向私有路线」两层**：`common`（13 篇，含扩充介绍）永远显示；`tracks` 按方向 A—F 切换渲染，每个方向卡自带阶段路线（可视化 stepper）、方向必读、复现资产与数据集。新增方向时必须在 `tracks` 下补齐 `pitch/fit/stages/papers/repos/datasets/note` 七个字段，缺一个方向卡就缺一块。
 
 ---
 
@@ -130,39 +162,39 @@ facts → research → tools → jobs → skills → portfolio → app
 | `priority`（技能） | `P0` `P1` `P2` `P3` |
 | `src`（facts.js 来源） | `s1` 一手 / `s2` 二手 / `s3` 推断 |
 | `timeline[].type` | `plan` `forecast` |
-| `cityFit`（地域适配） | `preferred` `acceptable` `avoid` |
+| `cityFit`（地域适配） | `preferred` `acceptable` `avoid`（2026-08 后仅用于「长期驻京无跳出价值」类岗位；北京岗位默认 `acceptable`） |
 
 ---
 
 ## 4.1 地域约束（改岗位数据前必读）
 
-地域是**硬约束，优先于岗位匹配度**。一个方向再对口，城市不符也不能标成主投目标。
+地域是**硬约束，优先于岗位匹配度**——但约束本身会随本人意愿修订，2026-08-28 刚发生过一次：**北京从「任何阶段不投递」改为「毕业后可接受 1—2 年中转跳板」**。改地域相关内容前，先确认约束的当前版本。
 
 **唯一事实源是 `JOBS.cityPolicy`**，岗位页开头就渲染它。改地域偏好只改这一处，不要散落到各段文案里。
 
 | 阶段 | 城市与顺序 | 说明 |
 |---|---|---|
-| 读研期间（2026.09—2029.06） | 1 重庆 → 2 成都 | 重庆是驻地；成都在 1—2 小时高铁圈，是唯一现实的跳板 |
-| 毕业就业（2029 起） | 1 杭州 → 2 上海 → 3 深圳 → 4 广州 | **顺序即偏好强度**，由 `rank` 表达 |
-| 任何阶段 | **北京不投递** | 除非该岗位明确支持远程 |
+| 读研期间（2026.09—2029.06） | 1 重庆 → 2 成都 | 重庆是驻地；成都在 1—2 小时高铁圈，是默认跳板。北京 1—2 个月的寒假实习仅作跳板落空后的末位备选 |
+| 毕业就业（2029 起） | 1 杭州 → 2 上海 → 3 深圳 → 4 广州 → 5 北京（中转） | **顺序即偏好强度**，由 `rank` 表达；北京 rank=5，角色是「中转跳板（1—2 年）」 |
+| 中转纪律 | 北京 = 跳板不是终点 | 入职前写清 1—2 年后的跳出计划（目标城市/团队/需补能力）；长期（>2 年）驻京不在计划内 |
 
-`cityPolicy.phases[].cities[].rank` 是渲染排序依据，`JOBS.regions[].rank` 必须与它保持一致（渲染层按 `rank` 排序，不按样本量）。改偏好顺序时两处都要改。
+`cityPolicy.phases[].cities[].rank` 是渲染排序依据，`JOBS.regions[].rank` 必须与它保持一致（渲染层按 `rank` 排序，不按样本量）。改偏好顺序时两处都要改。北京的中转规则、用法与上限写在 `cityPolicy.transit`（渲染为琥珀色「中转可接受」卡片，取代旧版红色「不投递」卡片）。
 
 对应的 `cityFit` 取值：
 
-- `preferred` —— 命中该阶段的首选城市（读研期重庆/成都；毕业期杭州）
-- `acceptable` —— 在意向列表内但非首选（上海、深圳、广州）
-- `avoid` —— **纯北京岗位。保留它们只为「能力情报」**：从 JD 反推能力要求与作品集包装方式，不用于投递。这类条目应同时满足 `targetTier:'secondary'`、`tier:'C'`、`opening` 写明「不投递」。
+- `preferred` —— 命中该阶段的首选城市（读研期重庆/成都；毕业期杭州/上海/深圳/广州）
+- `acceptable` —— 在意向列表内但非首选，**含北京中转岗位**
+- `avoid` —— 与地域意向真正冲突的岗位（现仅指「需长期驻京且无跳出价值」类）。这类条目应同时满足 `targetTier:'secondary'`、`tier:'C'`、`opening` 写明定位
 
-> 不要因为北京岗位方向好就把它升回 `primary`/`S`。第一版就是这么做的：12 个代表岗位里 6 个涉及北京且都标为 S/A，而毕业首选的杭州一个都没有，整页策略与真实意向相反。
+> **2026-08 修订的教训要记住**：第一版曾因把北京标成 S/A 而整页策略与真实意向相反，于是矫枉过正写成「北京不投递、仅作情报」；半年后本人接受北京中转，策略再次反转。两次教训是同一个——**策略页必须忠实于当时的真实意向，意向变了就改数据并记录修订日期**（`JOBS.meta.revisedAt`），不要让旧约束以「纪律」的名义存活。
 
-**页面顺序也是策略的一部分**：岗位页先讲地域约束，再讲岗位族与样本，最后才折叠展示百度快照口径。不要把数据口径挪回开头——北京占 84.2%，放在开头会让整页第一印象变成「机会都在北京」，与真实意向相反。
+**页面顺序仍是策略的一部分**：岗位页先讲地域约束，再讲岗位族与样本，最后才折叠展示百度快照口径。
 
-**城市分布图按 `fit` 分组**（`target` / `excluded` / `other`），不按记录数排序。北京柱条固定进 `excluded` 组并降饱和显示。新增城市时必须同时给 `fit`，否则不会出现在任何分组里。
+**城市分布图按 `fit` 分组**（`target` / `transit` / `other`），不按记录数排序。北京柱条固定进 `transit` 组并降饱和显示（琥珀色，不是旧版的红色）。新增城市时必须同时给 `fit`，否则不会出现在任何分组里。
 
-**两个目标池是数据缺口，不是已核验岗位**：`hz-target-pool`（杭州）和 `cd-hz-winter-pool`（研二寒假成都/杭州）都标为 `needsVerification`，因为本轮 1912 条快照没有覆盖这些雇主。补数据时按抓腾讯/百度的同样方法补样本，再把这两条替换为具体团队，并同步销掉 `verify-hz-teams` / `verify-cd-student-hc` 两个核验项。
+**两个目标池仍是数据缺口，不是已核验岗位**：`hz-target-pool`（杭州）和 `cd-hz-winter-pool`（研二寒假成都/杭州）都标为 `needsVerification`，因为本轮 1912 条快照没有覆盖这些雇主。补数据时按抓腾讯/百度的同样方法补样本，再把这两条替换为具体团队，并同步销掉 `verify-hz-teams` / `verify-cd-student-hc` 两个核验项。
 
-> **杭州技术岗样本为 0，这不是笔误。** 1287 条里杭州只有 7 条记录且技术岗为 0——首选城市恰好证据最薄。`cityPolicy.tension` 就是在说这件事：偏好顺序与证据强度不一致时，要补数据，而不是改偏好。
+> **杭州技术岗样本为 0，这不是笔误。** 1287 条里杭州只有 7 条记录且技术岗为 0——首选城市恰好证据最薄。北京中转化并不解决这个问题：中转池（943 条）只在「1—2 年后跳走」的前提下才有价值，直接落地仍靠杭州补数据。`cityPolicy.tension` 就是在说这件事：偏好顺序与证据强度不一致时，要补数据，而不是改偏好。
 
 > `roleFamily` 用连字符（`ai-app`），不是驼峰（`aiApp`）。第一版曾因这个不一致导致「AI 应用」筛选永远为空。
 >
@@ -174,7 +206,7 @@ facts → research → tools → jobs → skills → portfolio → app
 
 **加一个代表岗位**：在 `JOBS.teams` 末尾追加一条，`id` 全站唯一，枚举照第 4 节填。筛选器和搜索会自动收录，无需改 `app.js`。
 
-**加一篇论文**：在 `RESEARCH.reading.<层级>.items` 追加。**如果只在正文里提 arXiv 编号（比如 90 天计划、风险说明），必须同时把它加进阅读清单或数据集列表**，否则就成了站点自己禁止的「未核验引文」。
+**加一篇论文**：在 `RESEARCH.reading.<层级>.items` 追加。**如果只在正文里提 arXiv 编号（比如 90 天计划、风险说明），必须同时把它加进阅读清单或数据集列表**，否则就成了站点自己禁止的「未核验引文」。要加本地 PDF 时：先实际下载到 `site/papers/<ax>.pdf` 并校验文件头为 `%PDF`，**下载成功才写 `pdf:true`**——渲染层按 `papers/<ax>.pdf` 生成链接，标了没有文件就是死链。
 
 **新增待核验项**：追加到 `JOBS.verification`，`impact` 决定排序权重。
 
@@ -193,7 +225,10 @@ facts → research → tools → jobs → skills → portfolio → app
 `app.js` 是一个 IIFE，结构为「工具函数 → 组件 → 十个页面 → 状态与事件」。
 
 - **路由**：`location.hash`，未知 hash 回退到 `dashboard`。
-- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / timeline / checkList / filterGroup / claimBadge / evidenceBadge`。
+- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / pageSummary（要点块，读各模块 summary 字段）/ timeline / checkList / filterGroup / claimBadge / evidenceBadge / paperItem（含 intro 与本地 PDF 链接）/ renderTrackCard（方向卡 + stage-flow 阶段可视化）/ skillRefs（学习参考，book/web/paper 三类，local 指向本地 PDF）/ renderNowCard + currentPhase + phaseActions（仪表盘阶段感知，里程碑常量在渲染器顶部，每年复核）/ renderProgress（三条进度线）`。
+- **信息分层约定（2026-08-29 起）**：页面内容分「要点层（pageSummary，永远可见）/ 执行层（默认展开）/ 证据层（默认折叠进 `details`）」。改内容时保持这个分层：情报类（饱和、竞争、口径、信号矩阵、就业档案）默认折叠，执行类（清单、路线、阶梯、学习路线）默认展开。折叠标题要自带信息量（名称 + 条数）。
+- **jobs 页 section 顺序**：地域约束 → 实习阶梯 → 岗位族 → 岗位样本 → 时间线 → 口径(折叠) → 数据边界(折叠)。阶梯在样本之前是刻意的（研一核心是阶梯不是目标地图），调整顺序前先想清楚。
+- **verify 页渲染按 impact 排序**（critical → high → medium），数据顺序不动。
 - **三个转义函数，按数据来源选**：
   - `escapeHtml()` —— 默认选择。用于所有纯文本字段（岗位名、城市、搜索词）。
   - `safeRich()` —— **先整体转义，再放回极小的白名单标签**（`b` `strong` `em` `code` `br`，且只认不带属性的裸标签）。用于策展文本里含 `<b>` 强调的字段：`teams[].summary`、`regions[].strategy`、`regions[].risk`、`RESEARCH.translate`。这类字段以前走 `escapeHtml()`，结果 `<b>` 被当字面量显示成 `&lt;b&gt;`；改用 `safeRich()` 后强调正常生效，`<script>`、`<img onerror>`、`<b onclick=...>` 仍全部保持转义。
@@ -257,21 +292,32 @@ console.log("faint on card", R("#7d8a9f","#141c2b"))'
 
 ---
 
-## 7. 以后接持久化
+## 6.3 视觉身份（v2 · 精密蓝图）
 
-内存状态集中在 `app.js` 顶部的 `state`：
+v2 在 v1 令牌体系上叠加了四个签名元素，改样式时不要无意中拆掉：
 
-```js
-state = { checks: Set<id>, jobCity, jobTier, jobStage, jobFamily,
-          jobEvidence, skillPriority, skillDomain, verifyImpact,
-          verifyStatus, paperLevel, paperFlag, paperCategory }
-```
+1. **图纸底纹**：`body::before` 的固定网格（`--grid-line`），用 radial mask 从顶部渐隐。纯 CSS，无图片。
+2. **点阵标记**：侧栏 `.brand h1::before` 与仪表盘 `.callout.hero-line::before` 共用「蓝图对位点」语汇。
+3. **编号系统**：页头 `.eyebrow-no`（与侧栏导航序号一致，`app.js` 的 `routeOrder` 决定）+ `h3.sec::before` 的 CSS 计数器（`.page { counter-reset: sec }`）。新增 `section()` 会自动编号，不要手动写序号。
+4. **层级色纪律扩展**：绿/琥珀/红仍专属证据分级。岗位 tier 色条因此改为 **S=紫（`--purple`）、A=靛、B/C=灰阶**（S 的徽章在 `renderJobCard` 里用 `b-pur`），避免 S 级绿色被误读为「一手证据」。
 
-`state.checks` 存的就是各条目的稳定 `id`（`paper-*` / `week-*` / `ap-*` / `cg-*` / `verify-*` / `repro-*` / `submission-*` / `monthly-*` / 技能 id）。
+其他约束：`.page-head h2` 的渐变文字包在 `@supports (background-clip: text)` 里，降级为纯色；`--topbar-h` 变更仍需同步锚点偏移；v1 遗留的无引用类（`.hero`、`.metric-grid`、`.split`、`.copy-block` 等）已在 v2 移除，确认无引用后才可删类。
 
-最小改造：在 IIFE 启动时读取存储填充 `state`，在 `bindPageEvents` 的 change/click 回调里写回。**不要改 id 命名规则**，否则历史勾选记录会全部失效。
+---
 
-注意：`file://` 下 `localStorage` 在部分浏览器受限，若要可靠持久化，建议改用本地静态服务器打开，或落到文件/后端。
+## 7. 持久化（2026-08-29 落地）
+
+勾选、主题、阅读方向经 `localStorage` 保存在本机；键名集中在 `app.js` 的 `STORE`：
+
+| 键 | 内容 |
+|---|---|
+| `rp.checks` | `state.checks` 的 JSON 数组（各条目稳定 id） |
+| `rp.theme` | `'light'` / `'dark'` |
+| `rp.track` | 阅读页方向选择（A—F） |
+
+`state.checks` 存的就是各条目的稳定 `id`（`paper-common-*` / `paper-<方向>-*` / `week-*` / `ap-*` / `atlas-*` / `cg-*` / `verify-*` / `monthly-*` / 技能 id）。读写全部走 `storeGet/storeSet/storeDel` 的 try/catch——**`file://` 下部分浏览器限制 localStorage，异常时静默降级为会话态**，不要把存储异常抛到页面上。侧栏的「重置进度」按钮清空 `rp.checks`。
+
+**不要改 id 命名规则**，否则已保存的勾选记录会全部失效。仪表盘「进度总览」三条线（公共必读 x/13、90 天 y/12、核验 z/12）直接从 `state.checks` 计数，与持久化同批上线——若回滚持久化，务必同时摘掉进度卡，避免出现恒为 0 的空条。
 
 ---
 
@@ -290,21 +336,38 @@ console.log(a.length,c("SOCIAL"),c("INTERN"),c("校招"),
 a.filter(r=>r.postType==="技术").length)'
 
 # 3) 可投池复算（改动 cityReach / cities[].tech 后必做）
-#    应得 304 含意向城市 / 197 其中技术岗 / 943 纯北京 / 203 完全不含北京
+#    2026-08 口径：应得 304 含意向城市（技术岗 197）/ 943 纯北京（技术岗 531）/ 1247 意向或北京（技术岗 728）
 #    注意：这里用「记录是否包含该城市」判定，不是各城市相加
 node -e 'const a=require("./.jobs/baidu.json");
 const W=["重庆","成都","杭州","上海","深圳","广州"];
 const has=(r,c)=>String(r.workPlace||"").includes(c);
 const want=r=>W.some(c=>has(r,c));
-console.log(a.filter(want).length,
-a.filter(r=>want(r)&&r.postType==="技术").length,
-a.filter(r=>has(r,"北京")&&!want(r)).length,
-a.filter(r=>!has(r,"北京")).length)'
+const bj=r=>has(r,"北京"); const t=r=>r.postType==="技术";
+console.log(a.filter(want).length, a.filter(r=>want(r)&&t(r)).length,
+a.filter(r=>bj(r)&&!want(r)).length, a.filter(r=>bj(r)&&!want(r)&&t(r)).length,
+a.filter(r=>bj(r)||want(r)).length, a.filter(r=>(bj(r)||want(r))&&t(r)).length)'
+
+# 4) 本地 PDF 库核对（改动 reading / skills 的 pdf 与 local 标记后必做）
+#    输出的两个数字必须相等；不等就是有死链或漏标（孤儿文件同样要清）
+node -e 'const fs=require("fs");
+function load(p){const w={};new Function("window","with(window){"+fs.readFileSync(p,"utf8")+"}")(w);return w;}
+const R=load("site/data/research.js").RESEARCH;
+const flagged=new Set();
+R.reading.common.items.forEach(p=>{if(p.pdf)flagged.add(p.ax)});
+Object.keys(R.reading.tracks).forEach(t=>R.reading.tracks[t].papers.forEach(p=>{if(p.pdf)flagged.add(p.ax)}));
+const files=fs.readdirSync("site/papers").filter(f=>f.endsWith(".pdf")).map(f=>f.replace(".pdf",""));
+console.log("标记 pdf 的论文数:",flagged.size,"实际文件数:",files.length);
+console.log("死链:",[...flagged].filter(a=>!files.includes(a)));
+console.log("孤儿:",files.filter(f=>!flagged.has(f)))'
 ```
 
 4) 浏览器冒烟：双击 `site/index.html`，逐一点开十个导航项，确认 F12 控制台无红色报错、页面无 `undefined`。
-5) 交互：任选一组筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个关键词点结果跳转、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
-6) **地域顺序抽查**：打开 `#jobs`，确认页面第一屏是「地域约束」而不是百度快照；确认就业阶段顺序为 杭州 → 上海 → 深圳 → 广州；确认北京出现在「排除城市」分组且带「仅作情报」标记。
+   也可以先跑无头版快速回归（十个路由全部 PASS 即基本可用）：`node _render_smoke.js`；
+   阶段感知回归（三个模拟日期的阶段名/周次/行动切换）：`node _phase_smoke.js`。
+   阶段里程碑常量在 `app.js` 的 `PHASES`（依据 timeline 与阶梯节奏，**每年复核**）。
+5) 交互：阅读页切 6 个方向 chip 看方向卡是否完整渲染（阶段路线/论文/资产/提示）；技能页任选一条路线看学习参考链接（本地 PDF 的要能打开）；岗位/技能的其余筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个关键词点结果跳转、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
+6) **地域顺序抽查**：打开 `#jobs`，确认页面第一屏是「地域约束」而不是百度快照；确认就业阶段顺序为 杭州 → 上海 → 深圳 → 广州 → 北京（中转）；确认北京卡片是琥珀色「中转可接受 · 1—2 年跳板」（不再是红色「不投递」），城市分布图里北京在「中转城市」分组。
+7) **PDF 库抽查**：打开 `#reading`，任选一条带「📄 PDF」的论文点击，确认能在新窗口打开本地 PDF；把 `site/papers/` 整个改名后再刷新页面，确认链接变成死链（说明链接确实指向本地文件而非外链），改回原名。
 
 ---
 
@@ -316,9 +379,12 @@ a.filter(r=>!has(r,"北京")).length)'
 2. **不要把 1287 条说成「百度全部 AI 岗位」**。它是 15 个关键词、三类招聘类型的检索快照，含大量产品/销售岗。
 3. **城市数字不可相加**：163 条记录含多城市，做饼图必错，只能用横向柱状图并注明「按记录是否包含该城市计数」。
 4. **技能百分比是文本命中率**，不等于硬性要求率，也不能证明人才供需。百度与腾讯字段完整度不同（腾讯缺任职要求），**两组百分比不可合并、不可直接排名对比**。
-5. **作品集四个数字未实测前保持 `null`**。
-6. **引用前核对标题/作者/venue/年份/DOI**，无法核实就不写进站点。
-7. **简历主标签不用 GraphRAG**（当前样本零命中），用 Memory / Context Engineering / Evaluation / Knowledge Graph。这不代表技术无价值，只是不适合 ATS 检索。
+5. **作品集数字必须可追溯**：Atlas 的 542 测试 / 361s / $0.01 与 AgentParliament 的 6/6 来自仓库 README 与实测记录，可以写；但 n=1 必须标 `preliminary`，四个核心指标未实测前保持 `null`——**绝不把目标值冒充成果**。
+6. **引用前核对标题/作者/venue/年份/DOI**，无法核实就不写进站点。公共层 13 篇与各方向卡论文全部经 arXiv API 逐条反查确认；后续新增同样照此办理。
+7. **简历主标签不用 GraphRAG**（当前样本零命中），用 Agent Evaluation / Reliability / Observability / Harness / Memory。这不代表技术无价值，只是不适合 ATS 检索。
+8. **本地 PDF 只收「必读与直接对手」**：47 篇已是上限量级（122 MB）。泛读论文保持 arXiv 外链，不要把整个文献库搬进仓库。
+9. **页面定位要写明「何时失效」**：求职资产页是方向参考（2027.12 重做）、岗位页重点是实习、工具页是速查卡——每处降级都要在页首 callout 写清定位与重做时点，防止三年后把过时内容当成现行事实。
+10. **阅读页分层纪律**：一篇论文只归一处（公共层或某一个方向），跨方向复用就在方向卡的 note 里写「引用公共层第 N 篇」，不要复制条目。
 
 ---
 
@@ -328,3 +394,5 @@ a.filter(r=>!has(r,"北京")).length)'
 - **学位成果要求、实习管理办法全文**未获取到公开版，是最高优先级的待核验项——直接影响能否毕业和研二能否外出实习。
 - **腾讯 625 条快照没有本地原始文件**，无法像百度那样复算；其技能命中率只能视为下限。
 - **`tools.js` 证据等级低于其他板块**：基于既有知识整理，未逐条检索核实。工具免费额度与期刊 AI 政策变化快，投稿前务必回到目标期刊的 Guide for Authors 原文确认。
+- **导师支持新主线是口头结论（2026-08）**：属于一手但未经书面确认的信息，已按此修订选题策略；若后续沟通出现变化，先改 `facts.js` 第四条纠正与 `research.js` 的切口排序，再动其他板块。
+- **切口 A–E 的引用多为 2026 年预印本**：venue 标注以 arXiv comment 为准（如 FAGEN@ICML 2026、Interaction Tax = ICML 2026），部分论文后续正式发表信息可能更新，引用前按第 9 节纪律复核。

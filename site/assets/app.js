@@ -1,4 +1,4 @@
-/* 研究生三年发展路径 · 原生渲染器（无依赖、无持久化） */
+/* 研究生三年发展路径 · 原生渲染器（无依赖；勾选/主题/方向经 localStorage 保存在本机） */
 (function () {
   'use strict';
 
@@ -21,11 +21,24 @@
     return;
   }
 
+  // ── 本机持久化（file:// 下部分浏览器限制 localStorage：全部 try/catch，异常即静默降级为会话态） ──
+  var STORE = { checks: 'rp.checks', theme: 'rp.theme', track: 'rp.track' };
+  function storeGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+  function storeSet(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* 降级为会话态 */ } }
+  function storeDel(key) { try { window.localStorage.removeItem(key); } catch (e) { /* 同上 */ } }
+
+  function savedChecks() {
+    var raw = storeGet(STORE.checks);
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(function (id) { return typeof id === 'string'; }) : [];
+    } catch (e) { return []; }
+  }
+
   var state = {
-    checks: new Set(),
-    paperLevel: 'all',
-    paperFlag: 'all',
-    paperCategory: 'all',
+    checks: new Set(savedChecks()),
+    track: 'A',
     jobCity: 'all',
     jobTier: 'all',
     jobStage: 'all',
@@ -36,6 +49,7 @@
     verifyImpact: 'all',
     verifyStatus: 'all'
   };
+  function persistChecks() { storeSet(STORE.checks, JSON.stringify(Array.from(state.checks))); }
 
   // 页内目录的滚动监听器；每次重渲染前断开，避免逐次累积
   var tocObserver = null;
@@ -43,13 +57,13 @@
   var routeMeta = {
     dashboard: ['总览仪表盘', '把研究、工程与求职压成一条可执行主线。'],
     baseline: ['现实基线', '先确认导师、学校制度和产业资源，再做选择。'],
-    research: ['研究主线', '用图学习语言获得导师指导，用 Agent 记忆语言对接岗位。'],
-    reading: ['阅读与 90 天启动', '从文献地图进入可运行 baseline，而不是停在阅读。'],
-    tools: ['科研工具链与规范', '发现、核验、实验、写作和伦理组成一个可追溯闭环。'],
-    jobs: ['实习与岗位', '按阶段搭跳板，区分已观察岗位与未来开放机会。'],
-    skills: ['技能矩阵', '市场信号决定优先级，项目交付物证明掌握程度。'],
-    portfolio: ['作品集', '用两个深项目证明可靠性、性能和工程判断。'],
-    career: ['求职资产', '把论文、经历和项目翻译成招聘方能识别的语言。'],
+    research: ['研究主线', '主线：可信 Agent 系统（假成功检测与评测）；图记忆为导师锚定线。'],
+    reading: ['阅读与 90 天启动', '公共必读打底，按方向进入专属路线；默认沿方向 A 启动。'],
+    tools: ['科研工具链', '速查卡：核心工具与方法论归档位置。'],
+    jobs: ['实习与岗位', '按阶段搭跳板，北京按中转定位纳入。'],
+    skills: ['技能矩阵', '市场信号决定优先级，每条路线配学习参考。'],
+    portfolio: ['作品集', '用真实开源项目证明可靠性、性能和工程判断。'],
+    career: ['求职资产', '方向参考：临近 2027.12 再按当年市场重做。'],
     verify: ['待核验清单', '优先消除会改变路线的未知条件。']
   };
 
@@ -119,14 +133,25 @@
   }
   function slug(value) { return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '-'); }
 
+  // 页序号与侧栏导航编号一致，页头展示用
+  var routeOrder = ['dashboard', 'baseline', 'research', 'reading', 'tools', 'jobs', 'skills', 'portfolio', 'career', 'verify'];
+
   function pageHead(route, eyebrow) {
     var meta = routeMeta[route];
-    return '<header class="page-head"><div class="eyebrow">' + escapeHtml(eyebrow) +
+    var no = ('0' + Math.max(0, routeOrder.indexOf(route))).slice(-2);
+    return '<header class="page-head"><div class="eyebrow"><span class="eyebrow-no">' + no + '</span>' + escapeHtml(eyebrow) +
       '</div><h2>' + escapeHtml(meta[0]) + '</h2><p class="lede">' + escapeHtml(meta[1]) + '</p></header>';
   }
 
   function section(title, id) {
     return '<h3 class="sec"' + (id ? ' id="' + escapeHtml(id) + '"' : '') + '>' + escapeHtml(title) + '</h3>';
+  }
+
+  // 要点块：每页 3—5 条结论，渲染在页头下方；文案来自数据模块的 summary 字段
+  function pageSummary(items) {
+    if (!arr(items).length) return '';
+    return '<section class="page-summary"><div class="ps-head">本页要点</div><ul>' +
+      items.map(function (item) { return '<li>' + safeRich(item) + '</li>'; }).join('') + '</ul></section>';
   }
 
   function badge(label, cls) {
@@ -214,7 +239,7 @@
     var done = normalized.filter(function (item) { return state.checks.has(item.id); }).length;
     var pct = normalized.length ? Math.round(done / normalized.length * 100) : 0;
     return '<section class="card checklist-card" data-checklist="' + escapeHtml(id) + '">' +
-      '<div class="card-head"><strong>' + escapeHtml(title) + '</strong><span class="session-note">当前会话</span></div>' +
+      '<div class="card-head"><strong>' + escapeHtml(title) + '</strong><span class="session-note">本机保存</span></div>' +
       (meta ? '<p class="muted">' + escapeHtml(meta) + '</p>' : '') +
       '<div class="progress-line"><div class="track"><i style="width:' + pct + '%"></i></div><span class="lbl">' + done + ' / ' + normalized.length + '</span></div>' +
       '<div class="check-list">' + normalized.map(function (item) {
@@ -230,23 +255,105 @@
     }).join('') + '</nav>';
   }
 
+  // ── 阶段感知：里程碑常量（依据 JOBS.timeline 与实习阶梯的既定节奏，每年复核） ──
+  var ENROLL_ISO = '2026-09-01';
+  var PHASES = [
+    { id: 'pre', until: '2026-09-01', name: '入学前', next: '入学', focus: '完成入学前后立即执行的清单：给导师的邮件/组会材料、公共必读、制度核验、算力确认。' },
+    { id: 'y1a', until: '2027-01-12', name: '研一上 · 90 天启动', next: '研一寒假', focus: '评测设施定型（minibank-trap 受控评测）；启动 openEuler 开源实习与 OSPP 报名。' },
+    { id: 'y1b', until: '2027-09-01', name: '研一寒假与下学期', next: '研二', focus: '寒假逐家核验重庆本地线索；Eval 与 Go；暑假 GLCC / 开源与项目推进。' },
+    { id: 'y2', until: '2028-02-01', name: '研二上', next: '暑期实习主投', focus: '两项目定型并实测四个核心数字；联系成都/杭州 mentor；2027.12 起每周跟踪招聘窗口。' },
+    { id: 'sprint', until: '2028-07-01', name: '暑期实习主投期', next: '暑期实习', focus: '简历冻结；按 杭州→上海→深圳→广州 主投，北京按中转定位一并投递。' },
+    { id: 'intern', until: null, name: '暑期实习与秋招', next: null, focus: '暑期实习用成功率、成本、延迟、吞吐记录贡献；提前批与秋招并行，不押单一团队。' }
+  ];
+
+  function currentPhase(now) {
+    for (var i = 0; i < PHASES.length; i += 1) {
+      var until = PHASES[i].until ? new Date(PHASES[i].until + 'T00:00:00').getTime() : Infinity;
+      if (now.getTime() < until) {
+        return { phase: PHASES[i], daysLeft: PHASES[i].until ? Math.ceil((until - now.getTime()) / 86400000) : null };
+      }
+    }
+    return { phase: PHASES[PHASES.length - 1], daysLeft: null };
+  }
+
+  // 90 天计划的当前周（自入学日起每 7 天一周）；0 = 未开学，13 = 已过执行期
+  function plan90Week(now) {
+    var start = new Date(ENROLL_ISO + 'T00:00:00').getTime();
+    var days = Math.floor((now.getTime() - start) / 86400000);
+    if (days < 0) return 0;
+    var week = Math.floor(days / 7) + 1;
+    return week > 12 ? 13 : week;
+  }
+
+  function phaseActions(phaseId, now) {
+    if (phaseId === 'pre') {
+      return [
+        { t: '给导师的第一封邮件若尚未发出，开学前发出；已联系则准备组会汇报材料', to: '#research' },
+        { t: '公共必读前 4 篇读完（RAG、Generative Agents、MemGPT、记忆综述）', to: '#reading' },
+        { t: '向学位办索取现行《学位成果要求》与《实习管理办法》全文', to: '#verify' },
+        { t: '向导师确认 GPU、API 预算、服务器权限与组内相关工作', to: '#verify' },
+        { t: '跑通 Atlas 全量测试与一次 dry-run；minibank-trap 升级为受控评测', to: '#portfolio' }
+      ];
+    }
+    var acts = [];
+    var w = plan90Week(now);
+    if (w >= 1 && w <= 12) {
+      acts.push({ t: '90 天计划 · ' + RESEARCH.plan90[w - 1].w + ' 产出：' + RESEARCH.plan90[w - 1].out, to: '#reading' });
+    } else if (w > 12) {
+      acts.push({ t: '90 天计划已过执行期，按方向卡「阶段路线」与实习阶梯继续推进', to: '#reading' });
+    }
+    if (phaseId === 'y1a') acts.push({ t: '注册 openEuler 开源实习领任务；OSPP 点亮计划报名', to: '#jobs' });
+    if (phaseId === 'y1b') acts.push({ t: '寒假：重庆本地线索逐家核验是否真实在招、是否兼容学业', to: '#jobs' });
+    if (phaseId === 'y2') acts.push({ t: '两项目四项核心数字实测；建立杭州雇主清单', to: '#portfolio' });
+    if (phaseId === 'sprint' || phaseId === 'intern') acts.push({ t: '按偏好顺序投递并跟踪面试；北京 offer 须同时满足可迁移方向与跳出计划', to: '#jobs' });
+    acts.push({ t: '每月巡检：Scholar Alert、arXiv 扫描、openEuler/OSPP 进度、待核验项销号', to: '#verify' });
+    return acts;
+  }
+
+  function renderNowCard(now) {
+    var cur = currentPhase(now);
+    var p = cur.phase;
+    var w = plan90Week(now);
+    var actions = phaseActions(p.id, now);
+    return '<section class="now-card"><div class="now-head"><div><div class="ps-head">当前阶段</div>' +
+      '<div class="now-name">' + escapeHtml(p.name) + '</div></div><div class="now-meta">' +
+      (w >= 1 && w <= 12 ? '<span class="badge b-acc">90 天计划 · ' + escapeHtml(RESEARCH.plan90[w - 1].w) + '</span>' : '') +
+      (cur.daysLeft != null ? '<span class="badge b-info">距 ' + escapeHtml(p.next) + ' ' + cur.daysLeft + ' 天</span>' : '') +
+      '</div></div><p class="now-focus">' + escapeHtml(p.focus) + '</p>' +
+      '<ul class="now-actions">' + actions.map(function (a) {
+        return '<li><a href="' + a.to + '">' + escapeHtml(a.t) + '</a></li>';
+      }).join('') + '</ul></section>';
+  }
+
+  // 进度总览：三条进度线。与 localStorage 同批上线；存储不可用时数字仅为会话态
+  function renderProgress() {
+    var common = allPapers().filter(function (p) { return p.level === 'common'; });
+    var cDone = common.filter(function (p) { return state.checks.has(p.id); }).length;
+    var wDone = RESEARCH.plan90.filter(function (w) { return state.checks.has('week-' + w.w); }).length;
+    var vDone = JOBS.verification.filter(function (v) { return state.checks.has(v.id); }).length;
+    function line(label, done, total) {
+      var pct = total ? Math.round(done / total * 100) : 0;
+      return '<div class="pg-row"><span class="pg-label">' + escapeHtml(label) + '</span>' +
+        '<div class="progress-line"><div class="track"><i style="width:' + pct + '%"></i></div><span class="lbl">' + done + ' / ' + total + '</span></div></div>';
+    }
+    return '<section class="card progress-card"><div class="card-head"><strong>进度总览</strong><span class="session-note">本机保存</span></div>' +
+      line('公共必读', cDone, common.length) + line('90 天计划', wDone, RESEARCH.plan90.length) + line('核验销项', vDone, JOBS.verification.length) + '</section>';
+  }
+
   function renderDashboard() {
+    var now = new Date();
     var firstAngle = RESEARCH.angles[0];
-    var immediate = [
-      { id: 'dash-policy', text: '入学后索取现行学位成果要求与实习管理办法全文' },
-      { id: 'dash-compute', text: '向导师确认 GPU、API 预算、服务器权限和组内相关工作' },
-      { id: 'dash-read', text: '完成 L0 前四篇，并跑通 PyG GCN on Cora' },
-      { id: 'dash-trace', text: '为 AgentParliament 设计最小 Trace 事件模型' }
-    ];
     return '<div class="page">' + pageHead('dashboard', 'Decision cockpit') +
-      callout('唯一主线', '<strong>后端工程 → Agent 应用 → Harness / 评测 / 可观测 → 长期记忆与图结构检索。</strong><br>论文负责建立方法深度，作品集负责证明系统能力，实习负责获得生产证据。', 'good') +
+      callout('唯一主线', '<strong>后端工程 → Agent 应用 → Harness / 评测 / 可观测 → 可信 Agent 系统：假成功检测与证据化评测。</strong><br>论文负责建立方法深度，作品集负责证明系统能力，实习负责获得生产证据。', 'good hero-line') +
+      renderNowCard(now) +
+      renderProgress() +
       '<div class="grid c4">' +
         stat('2026.09', '入学', '先核验制度与算力') +
         stat('W8', '研究切口冻结', 'baseline 表必须成型', 'warn') +
         stat('2028.02', '暑期实习主投', '预测窗口，需提前复核', 'warn') +
-        stat('2 个', '深度作品集', '每个都有四项实测指标', 'good') +
+        stat('2 个', '深度作品集', 'Atlas + AgentParliament', 'good') +
       '</div>' +
-      section('三条会改变计划的纠偏') +
+      section(DATA.corrections.length + ' 条会改变计划的纠偏') +
       '<div class="grid c3">' + DATA.corrections.map(function (item) {
         return '<article class="card correction"><div class="wrong">原假设 · ' + escapeHtml(item.wrong) + '</div><h4>' + rich(item.right) +
           '</h4><p>' + rich(item.why) + '</p><div class="impact"><b>行动影响</b> ' + escapeHtml(item.impact) + '</div>' + sourceLine(item.src, item.ref) + '</article>';
@@ -255,21 +362,21 @@
       '<div class="hero-decision card pad-lg"><div><span class="badge b-acc">首篇建议</span><h3>' + escapeHtml(firstAngle.name) +
         '</h3><p class="mono-sm">' + escapeHtml(firstAngle.en) + '</p><p>' + escapeHtml(firstAngle.problem) + '</p></div>' +
         '<div class="score-grid">' + Object.keys(firstAngle.scores).map(function (key) {
-          var names = { fit: '导师适配', novel: '新颖性', cheap: '成本友好', first: '首篇可行', safe: '撞题安全' };
+          var names = { value: '问题价值', novelty: '新颖性', falsifiable: '可证伪', feasible: '可实施', resource: '资源匹配', career: '求职对齐' };
           return '<div class="score-item"><span>' + names[key] + '</span>' + stars(firstAngle.scores[key]) + '</div>';
         }).join('') + '</div></div>' +
-      '<div class="grid c2">' + checkList('dashboard-now', '入学前后立即执行', immediate, '刷新后重置；完成证据应进入你后续的持久化系统。') +
       '<div class="card"><strong>必须守住的边界</strong>' + list([
         '不把 GraphRAG 当简历主标签；用 Memory、Context、Evaluation 和 Knowledge Graph。',
         '不把 1,287 条快照说成百度全部 AI 岗位。',
         '不把预测招聘时间、二手实习政策或目标指标写成事实。',
         '不把“能运行”当作品集完成；必须报告成功率、P99、QPS 与单位成本。'
-      ]) + '</div></div>' +
-      section('三年阶段图') + renderCareerTimeline(JOBS.timeline.slice(0, 8)) + '</div>';
+      ]) + '</div>' +
+      section('三年阶段图') + details('展开查看 2026—2029 关键节点（远期信息，属历史规律外推）', renderCareerTimeline(JOBS.timeline.slice(0, 8)), false) + '</div>';
   }
 
   function renderBaseline() {
     return '<div class="page">' + pageHead('baseline', 'Evidence before strategy') +
+      pageSummary(DATA.summary) +
       anchorNav([['advisor', '导师画像'], ['rules', '培养制度'], ['partners', '校企资源'], ['employment', '就业事实']]) +
       section('导师画像与方法签名', 'advisor') +
       '<div class="grid c2"><div class="card">' + kv(DATA.advisor.basic, true) + '</div><div class="card"><strong>可借力的方法签名</strong>' +
@@ -291,151 +398,168 @@
         return '<article class="job tier-' + escapeHtml(item.tier) + '"><div class="jh"><div class="jt">' + escapeHtml(item.name) + '</div>' + badge(item.tier, 'b-acc') +
           '</div><div class="jm">' + badge(item.level, 'b-info') + '</div><p>' + rich(item.note) + '</p><div class="jq"><b>价值判断：</b>' + rich(item.why) + '</div>' + sourceLine(item.src, item.ref) + '</article>';
       }).join('') + '</div>' +
-      '<h4 class="sub">可关注实验室</h4>' + table(['平台', '层级', '与路线的接口'], DATA.partners.labs.map(function (r) { return r.map(function (c) { return text(c); }); })) +
-      '<p class="mono-sm">' + rich(DATA.partners.labNote) + '</p>' +
+      details('可关注实验室（' + DATA.partners.labs.length + ' 个 · 背景档案）', table(['平台', '层级', '与路线的接口'], DATA.partners.labs.map(function (r) { return r.map(function (c) { return text(c); }); })) +
+      '<p class="mono-sm">' + rich(DATA.partners.labNote) + '</p>', false) +
       section('就业事实与不可用口径', 'employment') +
-      '<div class="grid c2"><div>' + table(['口径', '比例', '时间'], DATA.employment.official.map(function (r) { return r.map(function (c) { return text(c); }); })) +
+      details('落实率、雇主样本与薪资警告（背景数据）', '<div class="grid c2"><div>' + table(['口径', '比例', '时间'], DATA.employment.official.map(function (r) { return r.map(function (c) { return text(c); }); })) +
       '<div class="card"><strong>头部雇主样本</strong><p>' + escapeHtml(DATA.employment.employers) + '</p></div></div>' +
-      '<div>' + callout('薪资数据不可引用', DATA.employment.salaryWarning, 'bad') + '<div class="card"><strong>权威核验路径</strong><p>' + escapeHtml(DATA.employment.authoritative) + '</p>' + sourceLine(DATA.employment.src, DATA.employment.ref) + '</div></div></div>' +
-      callout(DATA.wafNote.title, DATA.wafNote.body, 'warn') + '</div>';
+      '<div>' + callout('薪资数据不可引用', DATA.employment.salaryWarning, 'bad') + '<div class="card"><strong>权威核验路径</strong><p>' + escapeHtml(DATA.employment.authoritative) + '</p>' + sourceLine(DATA.employment.src, DATA.employment.ref) + '</div></div></div>', false) +
+      details(DATA.wafNote.title, DATA.wafNote.body, false) + '</div>';
   }
 
   function renderResearch() {
     return '<div class="page">' + pageHead('research', 'Thesis × market language') +
+      pageSummary(RESEARCH.summary) +
       callout(RESEARCH.positioning.title, RESEARCH.positioning.body, 'good') +
-      section('五个研究切口') + '<div class="matrix">' + RESEARCH.angles.map(function (angle) {
+      section('六个研究切口') + '<div class="matrix">' + RESEARCH.angles.map(function (angle) {
         return '<article class="mx-card' + (angle.star ? ' rec' : '') + '">' + (angle.star ? '<span class="mx-tag">RECOMMENDED</span>' : '') +
           '<h5>' + escapeHtml(angle.id + ' · ' + angle.name) + '</h5><div class="en">' + escapeHtml(angle.en) + '</div>' +
-          kv([['问题', angle.problem], ['实验', '图侧：' + angle.exp.graph + '<br>端到端：' + angle.exp.e2e], ['目标刊', angle.venue], ['成本', angle.cost], ['风险', angle.risk]], true) +
+          kv([['问题', angle.problem], ['目标刊', angle.venue], ['成本', angle.cost], ['风险', angle.risk]], true) +
           '<div class="score-grid compact">' + Object.keys(angle.scores).map(function (key) {
-            var names = { fit: '适配', novel: '新意', cheap: '低成本', first: '首篇', safe: '安全' };
+            var names = { value: '价值', novelty: '新意', falsifiable: '可证伪', feasible: '实施', resource: '资源', career: '求职' };
             return '<div class="score-item"><span>' + names[key] + '</span>' + stars(angle.scores[key]) + '</div>';
           }).join('') + '</div>' + details('方法草案', list(angle.method), false) + '</article>';
       }).join('') + '</div>' +
       callout('建议排序', RESEARCH.angleAdvice, '') +
+      details('已拒绝的方向（2026-08-28 存档，防止重新发明）', '<div class="grid c2">' + arr(RESEARCH.rejected).map(function (r) {
+        return '<div class="card"><strong>' + escapeHtml(r.name) + '</strong><p>' + escapeHtml(r.reason) + '</p></div>';
+      }).join('') + '</div>', false) +
       section('双轨验证与指标体系') + callout('为什么要双轨', RESEARCH.dualTrack, 'good') +
-      '<div class="grid c3">' + RESEARCH.metrics.map(function (metric) {
+      details('指标体系（' + RESEARCH.metrics.length + ' 组 · 实验设计时查阅）', '<div class="grid c3">' + RESEARCH.metrics.map(function (metric) {
         return '<div class="card"><strong>' + escapeHtml(metric.g) + '</strong>' + list(metric.items) + '</div>';
-      }).join('') + '</div>' +
-      section('已经饱和的方向') + table(['方向', '证据', '判断'], RESEARCH.saturated.map(function (item) {
+      }).join('') + '</div>', false) +
+      section('已经饱和的方向') + details(RESEARCH.saturated.length + ' 条饱和判断（防止重新发明）', table(['方向', '证据', '判断'], RESEARCH.saturated.map(function (item) {
         return [text(item.t), text(item.e), '<strong>' + text(item.j) + '</strong>'];
-      })) +
-      section('竞争团队雷达') + '<div class="grid c2">' + RESEARCH.rivals.map(function (item) {
+      })), false) +
+      section('竞争团队雷达') + details(RESEARCH.rivals.length + ' 个团队 × 跟踪频率', '<div class="grid c2">' + RESEARCH.rivals.map(function (item) {
         var cls = item.level === 'danger' ? 'bad' : item.level === 'warn' ? 'warn' : '';
         return '<div class="card rival ' + cls + '"><div class="card-head"><strong>' + escapeHtml(item.n) + '</strong>' + badge(item.f, cls === 'bad' ? 'b-low' : cls === 'warn' ? 'b-mid' : 'b-dim') +
           '</div><p>' + escapeHtml(item.w) + '</p><div class="mono-sm">' + escapeHtml(item.note) + '</div></div>';
-      }).join('') + '</div>' + callout('竞争判断', RESEARCH.rivalJudgement, 'warn') +
+      }).join('') + '</div>' + callout('竞争判断', RESEARCH.rivalJudgement, 'warn'), false) +
       section('给导师的翻译层') + table(['Agent 语言', '图学习语言'], RESEARCH.translate.map(function (r) { return [text(r[0]), rich(r[1])]; })) +
-      '<blockquote><p>' + escapeHtml(RESEARCH.pitch) + '</p><cite>组会开场建议</cite></blockquote></div>';
+      '<blockquote><p>' + escapeHtml(RESEARCH.pitch) + '</p><cite>组会开场建议</cite></blockquote>' +
+      details('见导师材料（组会汇报骨架 · 第一封邮件存档）',
+        '<p class="muted">2026-08 已与导师确认方向支持（见「现实基线」纠偏四）。下面的 15 页骨架供 W4 / W8 / W12 组会复用；第一封邮件留档备查。</p>' +
+        table(['页', '内容', '要点'], RESEARCH.reportDeck.map(function (r) { return [text(r.p), text(r.c), text(r.k)]; })) +
+        '<div class="card"><strong>汇报要点</strong>' + list(RESEARCH.reportTips, false, true) + '</div>' +
+        '<h4 class="sub">' + escapeHtml(RESEARCH.firstMail.title) + '</h4>' +
+        '<p class="muted">' + escapeHtml(RESEARCH.firstMail.dont) + '</p>' +
+        '<pre class="mail-body">' + escapeHtml(RESEARCH.firstMail.body) + '</pre>' +
+        '<p class="muted">' + escapeHtml(RESEARCH.firstMail.effect) + '</p>', false) + '</div>';
   }
 
   function allPapers() {
+    // 公共必读 + 各方向论文统一收集，供搜索索引与 PDF 统计使用
     var result = [];
-    Object.keys(RESEARCH.reading).forEach(function (level) {
-      RESEARCH.reading[level].items.forEach(function (paper, index) {
-        result.push(Object.assign({ level: level, id: 'paper-' + level + '-' + (paper.ax || index) }, paper));
+    arr(RESEARCH.reading.common.items).forEach(function (paper, index) {
+      result.push(Object.assign({ level: 'common', track: null, id: 'paper-common-' + (paper.ax || index) }, paper));
+    });
+    Object.keys(RESEARCH.reading.tracks).forEach(function (tid) {
+      RESEARCH.reading.tracks[tid].papers.forEach(function (paper, index) {
+        result.push(Object.assign({ level: tid, track: tid, id: 'paper-' + tid + '-' + (paper.ax || index) }, paper));
       });
     });
     return result;
   }
 
+  // 方向卡的短名（chip 按钮用），缺失时回退到编号
+  var trackShort = { A: '假成功检测', B: '交叉审查边界', C: '记忆评测科学', D: '图结构记忆', E: '代码评测审计', F: '记忆压缩帕累托' };
+
   function paperItem(paper) {
     var id = paper.ax || paper.y || 'paper';
+    var pdfLink = (paper.pdf && paper.ax)
+      ? '<a class="pdf-link" href="papers/' + encodeURI(paper.ax) + '.pdf" target="_blank" rel="noreferrer" title="打开本地 PDF">📄 PDF</a>'
+      : '';
     return '<article class="paper' + (paper.key ? ' must' : '') + '"><div class="pid">' +
       (paper.ax ? '<a href="https://arxiv.org/abs/' + encodeURI(paper.ax) + '" target="_blank" rel="noreferrer">' + escapeHtml(paper.ax) + '</a>' : text(id)) +
-      '</div><div class="pb"><div class="pt">' + escapeHtml(paper.t) + '</div><div class="pv">' + text(paper.v) + ' · ' + text(paper.y) +
-      (paper.c == null ? '' : ' · cited ' + escapeHtml(paper.c)) + '</div><div class="pw">' + escapeHtml(paper.why) + '</div>' +
+      '</div><div class="pb"><div class="pt">' + escapeHtml(paper.t) + pdfLink + '</div><div class="pv">' + text(paper.v) + ' · ' + text(paper.y) +
+      (paper.c == null ? '' : ' · cited ' + escapeHtml(paper.c)) + '</div>' +
+      (paper.intro ? '<div class="p-intro">' + escapeHtml(paper.intro) + '</div>' : '') +
+      '<div class="pw">' + escapeHtml(paper.why) + '</div>' +
       '<div class="tag-row">' + (paper.key ? badge('必读', 'b-acc') : '') + (paper.warn ? badge('撞方向', 'b-low') : '') + (paper.cat ? badge(paper.cat, 'b-info') : '') + '</div></div></article>';
   }
 
   function renderReading() {
-    // 只构建一次论文集合，供筛选、计数、必读清单与筛选项共用
-    var all = allPapers();
-    var papers = all.filter(function (paper) {
-      var levelOk = state.paperLevel === 'all' || paper.level === state.paperLevel;
-      var flagOk = state.paperFlag === 'all' || (state.paperFlag === 'key' && paper.key) || (state.paperFlag === 'warn' && paper.warn);
-      var catOk = state.paperCategory === 'all' || paper.cat === state.paperCategory;
-      return levelOk && flagOk && catOk;
+    var reading = RESEARCH.reading;
+    var common = reading.common;
+    var tracks = reading.tracks;
+    var track = tracks[state.track] ? state.track : 'A';
+    var t = tracks[track];
+
+    var commonChecks = common.items.map(function (p, i) {
+      return { id: 'paper-common-' + (p.ax || i), text: p.t, meta: (p.ax || '') + ' · 公共必读' };
     });
-    var paperChecks = all.filter(function (p) { return p.key; }).map(function (p) {
-      return { id: p.id, text: p.t, meta: (p.ax || '无 arXiv') + ' · ' + p.level };
-    });
-    // 类别筛选项从数据派生，避免数据里有 cat 但没有对应按钮（例如“社区发现”）
-    var catOptions = uniqueBy(all, function (paper) { return paper.cat; })
-      .map(function (v) { return [v, v]; });
-    return '<div class="page">' + pageHead('reading', 'Read → reproduce → decide') +
-      section('论文地图与筛选') + '<div class="filters filter-stack">' +
-      filterGroup('层级', 'paperLevel', [['all', '全部'], ['L0', 'L0 奠基'], ['L1S', '综述'], ['L1M', '方法'], ['L1B', '基准'], ['L2', '图学习'], ['L3', '多 Agent']], state.paperLevel) +
-      filterGroup('标记', 'paperFlag', [['all', '全部'], ['key', '必读'], ['warn', '撞方向']], state.paperFlag) +
-      filterGroup('类别', 'paperCategory', [['all', '全部']].concat(catOptions), state.paperCategory) + '</div>' +
-      '<div class="result-count">显示 ' + papers.length + ' / ' + all.length + ' 篇</div><div class="card paper-list">' + (papers.length ? papers.map(paperItem).join('') : '<div class="empty">没有符合筛选条件的论文</div>') + '</div>' +
-      section('必读进度') + checkList('reading-key', '必读与直接竞争论文', paperChecks, '这里只记录当前页面会话，正式读书记录应进入 Zotero/Obsidian。') +
-      section('复现仓库') + table(['仓库', '许可证', '难度', '定位', '快照'], RESEARCH.repos.map(function (repo) {
-        return ['<a href="https://github.com/' + escapeHtml(repo.r) + '" target="_blank" rel="noreferrer">' + escapeHtml(repo.r) + '</a>' + (repo.pick ? ' ' + badge('首选', 'b-acc') : ''), text(repo.l), stars(repo.ease), text(repo.note), text(repo.p)];
-      })) + callout('复现顺序', RESEARCH.repoPath, '') +
-      section('数据集') + Object.keys(RESEARCH.datasets).map(function (group) {
-        var names = { mem: '记忆与 Agent', qa: '多跳问答', graph: '图学习' };
-        return details(names[group], table(['数据集', '规模', '获取', '用途'], RESEARCH.datasets[group].map(function (d) {
-          return [text(d.n) + (d.key ? ' ' + badge('关键', 'b-acc') : ''), text(d.size), text(d.get), text(d.use)];
-        })), group === 'mem');
-      }).join('') +
-      section('90 天启动路线') + renderPlan90() +
-      section('卡住时怎么退') + '<div class="grid c2">' + RESEARCH.fallback.map(function (item) {
+    var pdfCount = allPapers().filter(function (p) { return p.pdf && p.ax; }).length;
+    var trackChips = filterGroup('方向', 'track', Object.keys(tracks).map(function (tid) {
+      return [tid, tid + ' · ' + (trackShort[tid] || tid)];
+    }), track);
+
+    return '<div class="page">' + pageHead('reading', 'Common first, then your track') +
+      pageSummary(RESEARCH.readingSummary) +
+      callout('本页怎么用', '<b>先公共、后私有。</b>公共必读（' + common.items.length + ' 篇）无论最终走哪个方向都要读；想清楚方向后，切换到对应方向卡，按「阶段路线」推进该方向的必读与资产。标 📄 的 <b>' + pdfCount + ' 篇</b>论文已下载到 <code>site/papers/</code>，点「📄 PDF」直接开始阅读，无需联网。', 'good') +
+
+      section('公共必读 · 无论走哪条线', 'common-reading') +
+      '<div class="card paper-list">' + common.items.map(paperItem).join('') + '</div>' +
+      section('公共必读进度') + details('勾选进度（' + common.items.length + ' 篇）', checkList('reading-common', '公共必读清单（' + common.items.length + ' 篇）', commonChecks, '勾选自动保存在本机；正式读书记录进 Zotero/Obsidian。'), false) +
+
+      section('方向路线：选一条进入', 'tracks') + '<div class="filters filter-stack">' + trackChips + '</div>' +
+      renderTrackCard(track, t) +
+
+      section('90 天启动路线（公共 4 周 + 默认沿方向 A）', 'plan90') +
+      callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn') + renderPlan90() +
+
+      section('卡住时怎么退', 'fallback') + '<div class="grid c2">' + RESEARCH.fallback.map(function (item) {
         return '<div class="card"><strong>' + escapeHtml(item.s) + '</strong><p>' + escapeHtml(item.a) + '</p></div>';
       }).join('') + '</div></div>';
   }
 
+  // 方向卡：定位 → 阶段路线（可视化）→ 方向必读 → 资产 → 提示
+  function renderTrackCard(tid, t) {
+    return '<article class="card track-card pad-lg">' +
+      '<div class="track-head"><span class="badge b-acc">方向 ' + escapeHtml(tid) + '</span><div>' +
+      '<h3>' + escapeHtml(String(t.name).replace(/^方向 [A-F] · /, '')) + '</h3>' +
+      '<p class="track-pitch">' + escapeHtml(t.pitch) + '</p></div></div>' +
+      '<div class="track-fit"><b>接口</b>' + escapeHtml(t.fit) + '</div>' +
+      '<h4 class="sub">阶段路线</h4><div class="stage-flow">' + arr(t.stages).map(function (s, i) {
+        return '<div class="stage"><span class="s-no">' + (i + 1) + '</span><div class="stage-body"><b>' + escapeHtml(s.k) + '</b><p>' + escapeHtml(s.v) + '</p></div></div>';
+      }).join('') + '</div>' +
+      '<h4 class="sub">方向必读（' + arr(t.papers).length + ' 篇）</h4><div class="card paper-list">' + arr(t.papers).map(paperItem).join('') + '</div>' +
+      '<div class="grid c2">' +
+        '<div class="card"><strong>复现资产</strong>' + list(arr(t.repos).map(function (r) { return r.r + ' —— ' + r.note; })) + '</div>' +
+        '<div class="card"><strong>数据集</strong>' + list(arr(t.datasets).map(function (d) { return d.n + ' —— ' + d.d; })) + '</div>' +
+      '</div>' +
+      callout('使用提示', escapeHtml(t.note), '') +
+      '</article>';
+  }
+
   function renderPlan90() {
-    return '<div class="timeline">' + RESEARCH.plan90.map(function (item) {
-      var checkId = 'week-' + item.w;
-      return '<article class="tl-item' + (item.mile ? ' milestone' : '') + '"><div class="tl-when">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div>' +
-        '<div class="tl-what">' + escapeHtml(item.out) + '</div><div class="tl-desc"><b>读：</b>' + escapeHtml(item.read) + '<br><b>做：</b>' + escapeHtml(item.run) +
-        '<br><b>卡住：</b>' + escapeHtml(item.stuck) + '</div>' + (item.mile ? '<div class="tl-check"><b>里程碑：</b>' + escapeHtml(item.mile) + '</div>' : '') +
-        '<label class="mini-check"><input type="checkbox" data-check-id="' + checkId + '"' + (state.checks.has(checkId) ? ' checked' : '') + '> 本周验收完成</label></article>';
-    }).join('') + '</div>';
+    // 12 周按 Phase 分三组折叠，默认展开 Phase 1——整条时间线一次性铺开是本页最长的墙
+    var phaseNames = { 1: '公共必读、Atlas 复现与综述初稿', 2: '标注协议、基准设计与检测器 v1', 3: '消融、复现包与投稿材料' };
+    return [1, 2, 3].map(function (ph) {
+      var weeks = RESEARCH.plan90.filter(function (item) { return item.ph === ph; });
+      if (!weeks.length) return '';
+      return details('Phase ' + ph + ' · ' + weeks[0].w + '—' + weeks[weeks.length - 1].w + ' · ' + phaseNames[ph],
+        '<div class="timeline">' + weeks.map(plan90Item).join('') + '</div>', ph === 1);
+    }).join('');
+  }
+
+  function plan90Item(item) {
+    var checkId = 'week-' + item.w;
+    return '<article class="tl-item' + (item.mile ? ' milestone' : '') + '"><div class="tl-when">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div>' +
+      '<div class="tl-what">' + escapeHtml(item.out) + '</div><div class="tl-desc"><b>读：</b>' + escapeHtml(item.read) + '<br><b>做：</b>' + escapeHtml(item.run) +
+      '<br><b>卡住：</b>' + escapeHtml(item.stuck) + '</div>' + (item.mile ? '<div class="tl-check"><b>里程碑：</b>' + escapeHtml(item.mile) + '</div>' : '') +
+      '<label class="mini-check"><input type="checkbox" data-check-id="' + checkId + '"' + (state.checks.has(checkId) ? ' checked' : '') + '> 本周验收完成</label></article>';
   }
 
   function renderTools() {
-    var reproducibility = TOOLS.reproducibilityChecklist.map(function (item) { return { id: item.id, text: item.text }; });
-    var submission = TOOLS.submissionChecklist.map(function (item) { return { id: item.id, text: item.text }; });
-    return '<div class="page">' + pageHead('tools', 'Research operating system') +
-      callout('动态信息声明', TOOLS.disclaimer, 'warn') +
-      anchorNav([['discover', '文献发现'], ['manage', '管理与阅读'], ['experiment', '实验'], ['writing', '写作'], ['ethics', '伦理与投稿']]) +
-      section('文献发现：从关键词到引文网络', 'discover') + '<div class="grid c2">' + TOOLS.discover.map(function (tool) {
-        return '<article class="card"><div class="card-head"><strong>' + escapeHtml(tool.n) + '</strong>' + badge(tool.tier, tool.tier.indexOf('必') >= 0 ? 'b-acc' : 'b-dim') +
-          '</div><p><b>' + escapeHtml(tool.use) + '</b></p><p>' + escapeHtml(tool.how) + '</p><div class="mono-sm">访问：' + escapeHtml(String(tool.free)) + '</div></article>';
-      }).join('') + '</div>' +
-      section('文献管理与精读', 'manage') + callout('工具选择', TOOLS.manage.pick, 'good') +
-      '<div class="grid c3">' + TOOLS.manage.items.map(function (item) {
-        return '<div class="card"><div class="card-head"><strong>' + escapeHtml(item.n) + '</strong>' + badge(item.tier, 'b-info') + '</div><p>' + escapeHtml(item.why) + '</p></div>';
-      }).join('') + '</div>' +
-      details('统一入库与标注工作流', list(TOOLS.manage.workflow, true, true), true) +
-      '<div class="grid c2"><div class="card"><strong>' + escapeHtml(TOOLS.reading.threePass.t) + '</strong>' + TOOLS.reading.threePass.p.map(function (pass) {
-        return '<div class="method-row"><b>' + escapeHtml(pass.n) + '</b><p>' + rich(pass.d) + '</p></div>';
-      }).join('') + '</div><div class="card"><strong>阅读判断原则</strong>' + list(TOOLS.reading.tips, false, true) + '</div></div>' +
-      '<h4 class="sub">固定精读记录</h4>' + table(['字段', '必须记录'], TOOLS.noteTemplate.fields.map(function (r) { return [text(r[0]), text(r[1])]; })) +
-      '<div class="grid c2"><div class="card"><strong>Claim–Evidence 管理</strong>' + list(TOOLS.evidenceWorkflow.rules) + '</div><div class="card"><strong>Related Work 分类</strong>' + tags(TOOLS.evidenceWorkflow.taxonomy) + '<p>AI 摘要只负责导航，进入论文或汇报的事实必须回到原文。</p></div></div>' +
-      section('实验工程与可复现性', 'experiment') + callout('学术实验与产品开发的差异', TOOLS.experiment.note, '') +
-      '<div class="grid c2">' + TOOLS.experiment.stack.map(function (group) {
-        return '<div class="card"><strong>' + escapeHtml(group.g) + '</strong>' + kv(group.items) + '</div>';
-      }).join('') + '</div>' +
-      '<div class="card"><strong>实验纪律</strong>' + list(TOOLS.experiment.discipline, false, true) + '</div>' +
-      '<div class="grid c2">' + checkList('repro', '实验可复现检查表', reproducibility, '每组主实验完成后逐项核对。') +
-      '<div class="card"><strong>最低统计标准</strong>' + list([
-        '随机过程至少 3 次独立运行，报告 mean ± std。', '主结果之外必须有消融、强 baseline、错误分析和数据泄漏检查。',
-        '记录 seed、commit、config、硬件、依赖、模型/API 版本、prompt、token 与费用。', '保留原始输出、失败运行和负结果，不能只留最好数字。'
-      ]) + '</div></div>' +
-      section('写作、伦理与投稿', 'writing') + '<div class="grid c2"><div class="card"><strong>写作工具</strong>' + TOOLS.writing.stack.map(function (item) {
-        return '<div class="method-row"><b>' + escapeHtml(item.n) + '</b><p>' + rich(item.use) + '</p></div>';
-      }).join('') + '</div><div class="card"><strong>' + escapeHtml(TOOLS.writing.structure.t) + '</strong>' + kv(TOOLS.writing.structure.s, true) + '</div></div>' +
-      '<div class="card"><strong>写作工艺</strong>' + list(TOOLS.writing.craft, false, true) + '</div>' +
-      section('AI、保密与作者责任', 'ethics') + callout('投稿时重新确认', TOOLS.ai.warn, 'bad') +
-      '<div class="grid c2">' + TOOLS.ai.consensus.map(function (item) {
-        return '<div class="card"><strong>' + escapeHtml(item.rule) + '</strong><p>' + rich(item.why) + '</p></div>';
-      }).join('') + '</div><div class="card">' + list(TOOLS.ai.practical, false, true) + '</div>' +
-      '<div class="grid c2"><div>' + TOOLS.submit.flow.map(function (step) { return details(step.s, '<p>' + rich(step.d) + '</p>'); }).join('') + '</div>' +
-      checkList('submission', '投稿前检查表', submission, '目标期刊政策可能变化，每次投稿都应重新执行。') + '</div>' +
-      callout('拒稿处理', TOOLS.submit.reject, 'warn') + '<div class="card"><strong>伦理红线</strong>' + list(TOOLS.submit.ethics, false, true) + '</div></div>';
+    return '<div class="page">' + pageHead('tools', 'Quick reference only') +
+      callout('速查卡声明', rich(TOOLS.disclaimer), 'warn') +
+      section('核心工具速查') + table(['工具', '用途', '入口'], TOOLS.core.map(function (tool) {
+        return ['<strong>' + escapeHtml(tool.n) + '</strong>', escapeHtml(tool.use), escapeHtml(tool.ref || '—')];
+      })) +
+      section('方法论归档：grad-companion') +
+      callout(escapeHtml(TOOLS.companion.name), '<b>策略文档：</b><code>' + escapeHtml(TOOLS.companion.playbook) + '</code><br>' + rich(TOOLS.companion.note), 'good') +
+      '<p class="mono-sm">需要完整方法论时（三遍读法、可复现检查表、投稿清单等），打开上面的归档文档；本站不再重复维护。每月固定动作已并入「待核验清单」页。</p></div>';
   }
 
   function renderJobs() {
@@ -460,9 +584,15 @@
     // 技术岗数字从数据读取，不再在渲染层硬编码 747 / 58.0%
     var techPost = arr(JOBS.stats.postType).filter(function (i) { return i.id === 'tech'; })[0];
     return '<div class="page">' + pageHead('jobs', 'City first, then role') +
-      anchorNav([['city-policy', '地域约束'], ['job-samples', '岗位样本'], ['ladder', '实习阶梯'], ['snapshot', '数据口径']]) +
+      pageSummary(JOBS.summary) +
+      (JOBS.pageNote ? callout('本页重点：实习，不是求职', rich(JOBS.pageNote), 'warn') : '') +
+      anchorNav([['city-policy', '地域约束'], ['ladder', '实习阶梯'], ['job-samples', '岗位样本'], ['snapshot', '数据口径']]) +
       section('地域约束：一切筛选的前置条件', 'city-policy') +
       renderCityPolicy() +
+      section('实习四级阶梯', 'ladder') + '<div class="timeline">' + JOBS.internshipLadder.map(function (step) {
+        return '<article class="tl-item milestone"><div class="tl-when">STEP ' + escapeHtml(step.step) + ' · ' + escapeHtml(step.when) + '</div><div class="tl-what">' + escapeHtml(step.title) +
+          '</div><div class="tl-desc">' + list(step.actions) + '</div><div class="tl-check"><b>验收：</b>' + escapeHtml(step.acceptance) + '</div></article>';
+      }).join('') + '</div>' +
       section('岗位族：主投什么、不主投什么') + '<div class="grid c3">' + JOBS.roleFamilies.map(function (role) {
         var cls = role.tier === 'primary' ? 'b-high' : role.tier === 'secondary' ? 'b-acc' : role.tier === 'avoid' ? 'b-low' : 'b-mid';
         return '<article class="card"><div class="card-head"><strong>' + escapeHtml(role.name) + '</strong>' + badge(tierLabels[role.tier] || role.tier, cls) + '</div><p>' + escapeHtml(role.scope) +
@@ -476,10 +606,6 @@
       filterGroup('证据', 'jobEvidence', [['all', '全部']].concat(evidenceOptions), state.jobEvidence) + '</div>' +
       '<div class="result-count">显示 ' + teams.length + ' / ' + JOBS.teams.length + ' 个策展样本</div><div class="grid c2">' +
       (teams.length ? teams.map(renderJobCard).join('') : '<div class="empty card">没有符合筛选条件的岗位样本</div>') + '</div>' +
-      section('实习四级阶梯', 'ladder') + '<div class="timeline">' + JOBS.internshipLadder.map(function (step) {
-        return '<article class="tl-item milestone"><div class="tl-when">STEP ' + escapeHtml(step.step) + ' · ' + escapeHtml(step.when) + '</div><div class="tl-what">' + escapeHtml(step.title) +
-          '</div><div class="tl-desc">' + list(step.actions) + '</div><div class="tl-check"><b>验收：</b>' + escapeHtml(step.acceptance) + '</div></article>';
-      }).join('') + '</div>' +
       section('招聘时间线') + renderCareerTimeline(JOBS.timeline) +
       section('数据口径：这份快照能说明什么', 'snapshot') +
       callout(JOBS.meta.title, '<strong>' + JOBS.meta.denominator + ' 条去重记录</strong> · ' + escapeHtml(JOBS.meta.sampleScope) + '<br>' + escapeHtml(JOBS.meta.warning), 'warn') +
@@ -489,13 +615,14 @@
       details('城市记录分布与可投池测算', renderCityDistribution(), false, badge('按记录计数', 'b-dim')) +
       details('抽样与字段质量', '<div class="grid c2"><div>' + table(['岗位类型', '记录数', '占比'], JOBS.stats.postType.map(function (i) { return [text(i.label), text(i.count), text(i.pct + '%')]; })) +
         '</div><div>' + table(['字段质量', '数值', '解释'], JOBS.stats.quality.map(function (i) { return [text(i.label), text(i.value), text(i.note)]; })) + '</div></div>', false) +
-      section('不要跨过的数据边界') + '<div class="grid c2">' + Object.keys(JOBS.risks).map(function (group) {
+      section('不要跨过的数据边界') + details('数据口径风险与生涯决策风险', '<div class="grid c2">' + Object.keys(JOBS.risks).map(function (group) {
         var title = group === 'data' ? '数据口径风险' : '生涯决策风险';
         return '<div class="card"><div class="card-head"><strong>' + title + '</strong>' + claimBadge('inference') + '</div>' + list(JOBS.risks[group]) + '</div>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>', false) + '</div>';
   }
 
-  // 地域策略：按阶段分组 + 偏好序号，让「先城市后岗位」在视觉上就是第一层
+  // 地域策略：按阶段分组 + 偏好序号，让「先城市后岗位」在视觉上就是第一层。
+  // 2026-08 政策修订：北京从「排除」改为「中转」，excluded 卡片被 transit 卡片取代。
   function renderCityPolicy() {
     var policy = JOBS.cityPolicy;
     var byCity = {};
@@ -515,30 +642,32 @@
         }).join('') + '</ol></article>';
     }).join('');
 
-    var excluded = '<article class="phase-card excluded"><div class="phase-head"><div><strong>不投递 · ' +
-      arr(policy.excluded.cities).map(escapeHtml).join('、') + '</strong><div class="mono-sm">EXCLUDED BY INTENT</div></div>' +
-      badge('仅作情报', 'b-low') + '</div><p class="phase-rule">' + escapeHtml(policy.excluded.rule) +
-      '</p><p class="muted">' + escapeHtml(policy.excluded.use) + '</p></article>';
+    var transit = policy.transit ? '<article class="phase-card transit"><div class="phase-head"><div><strong>中转可接受 · ' +
+      arr(policy.transit.cities).map(escapeHtml).join('、') + '</strong><div class="mono-sm">TRANSIT, NOT DESTINATION</div></div>' +
+      badge('1—2 年跳板', 'b-mid') + '</div><p class="phase-rule">' + escapeHtml(policy.transit.rule) +
+      '</p><p class="muted">' + escapeHtml(policy.transit.use) + '</p><p class="muted">' + escapeHtml(policy.transit.limit) + '</p></article>' : '';
 
     return callout(policy.headline, rich(policy.tension), 'good') +
-      '<div class="phase-grid">' + phases + excluded + '</div>' +
+      '<div class="phase-grid">' + phases + transit + '</div>' +
       details('各城市策略与风险明细', '<div class="grid c2">' + arr(JOBS.regions).slice().sort(function (a, b) {
         return (a.rank || 99) - (b.rank || 99);
       }).map(function (region) {
-        var cls = region.phase === 'excluded' ? ' region-excluded' : '';
+        var isTransit = policy.transit && policy.transit.cities.indexOf(region.city) >= 0;
+        var cls = isTransit ? ' region-transit' : '';
         return '<div class="card region-card' + cls + '"><div class="card-head"><strong>' + escapeHtml(region.city) + '</strong>' +
-          badge(region.role, region.phase === 'excluded' ? 'b-low' : 'b-info') + '</div>' +
+          badge(region.role, isTransit ? 'b-mid' : 'b-info') + '</div>' +
           (region.sample ? '<div class="mono-sm">' + escapeHtml(region.sample) + '</div>' : '') +
           '<p>' + safeRich(region.strategy) + '</p><div class="region-risk"><b>风险</b> ' + safeRich(region.risk) + '</div></div>';
       }).join('') + '</div>', false);
   }
 
-  // 城市分布：按 fit 分组呈现。北京条形单独一组并降饱和，避免 84.2% 的长条主导视觉。
+  // 城市分布：按 fit 分组呈现。北京作为「中转」单独一组降饱和显示，
+  // 既不再冒充「排除」，也不让 84.2% 的长条主导视觉。
   function renderCityDistribution() {
     var cities = arr(JOBS.stats.cities);
     var groups = [
-      { fit: 'target', title: '意向城市', cls: 'grp-target', note: '这些才是你会投递的城市' },
-      { fit: 'excluded', title: '排除城市', cls: 'grp-excluded', note: '样本量最大，但不投递' },
+      { fit: 'target', title: '意向城市', cls: 'grp-target', note: '这些才是你会直接投递的城市' },
+      { fit: 'transit', title: '中转城市', cls: 'grp-transit', note: '毕业后可接受 1—2 年，不作长期驻地' },
       { fit: 'other', title: '其他城市', cls: 'grp-other', note: '与你的地域约束无关' }
     ];
     var chart = groups.map(function (group) {
@@ -559,10 +688,8 @@
       callout('怎么读这张图', rich(JOBS.stats.cityNote), 'warn');
   }
 
-  // 城市分布：意向城市在前、北京单列，避免 84.2% 的长条主导阅读顺序
-
   function renderJobCard(job) {
-    return '<article class="job tier-' + escapeHtml(job.tier) + '"><div class="jh"><div class="jt">' + escapeHtml(job.company + ' · ' + job.name) + '</div>' + badge(job.tier, job.tier === 'S' ? 'b-high' : 'b-acc') +
+    return '<article class="job tier-' + escapeHtml(job.tier) + '"><div class="jh"><div class="jt">' + escapeHtml(job.company + ' · ' + job.name) + '</div>' + badge(job.tier, job.tier === 'S' ? 'b-pur' : 'b-acc') +
       '</div><div class="jm">' + job.cities.map(function (v) { return badge(v, 'b-dim'); }).join('') + badge(familyLabels[job.roleFamily] || job.roleFamily, 'b-info') +
       badge(tierLabels[job.targetTier] || job.targetTier, 'b-acc') + '</div>' + tags(job.tags) + '<div class="jq">' + safeRich(job.summary) + '</div><div class="jw">' +
       escapeHtml(job.opening) + ' · 快照 ' + escapeHtml(job.sourceAsOf) + '</div><div class="evidence-row">' + claimBadge(job.claimType) + evidenceBadge(job.evidenceLevel) + '</div></article>';
@@ -585,22 +712,39 @@
     });
     var domains = Array.from(new Set(SKILLS.roadmap.concat(SKILLS.signals).map(function (s) { return s.domain; })));
     return '<div class="page">' + pageHead('skills', 'Market signal → proof of skill') +
+      pageSummary(SKILLS.summary) +
       callout('双口径不可合并', '<b>百度：</b>' + SKILLS.meta.baidu.denominator + ' 个技术岗，含职责与要求。<br><b>腾讯：</b>' + SKILLS.meta.tencent.denominator + ' 个技术岗，只有工作内容，命中率是下限。<br>' + escapeHtml(SKILLS.meta.warning), 'warn') +
       '<div class="filters filter-stack">' + filterGroup('优先级', 'skillPriority', [['all', '全部'], ['P0', 'P0'], ['P1', 'P1'], ['P2', 'P2'], ['P3', 'P3']], state.skillPriority) +
       filterGroup('能力域', 'skillDomain', [['all', '全部']].concat(domains.map(function (d) { return [d, domainLabels[d] || d]; })), state.skillDomain) + '</div>' +
-      section('市场信号矩阵') + '<div class="result-count">显示 ' + signals.length + ' / ' + SKILLS.signals.length + ' 项</div>' +
+      section('学习路线与可验证交付物') + '<div class="grid c2">' + roadmap.map(function (skill) {
+        return '<article class="card"><div class="card-head"><strong>' + escapeHtml(skill.name) + '</strong>' + badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim') +
+          '</div>' + kv([['目标水平', skill.target], ['截止阶段', skill.deadline], ['交付证据', skill.deliverable]]) +
+          skillRefs(skill.refs) +
+          '<label class="mini-check"><input type="checkbox" data-check-id="' +
+          escapeHtml(skill.id) + '"' + (state.checks.has(skill.id) ? ' checked' : '') + '> 标记完成</label></article>';
+      }).join('') + '</div>' +
+      details('市场信号矩阵（' + signals.length + ' / ' + SKILLS.signals.length + ' 项 · 调研证据）', '<div class="result-count">显示 ' + signals.length + ' / ' + SKILLS.signals.length + ' 项</div>' +
       table(['技能', '领域', '百度 ' + SKILLS.meta.baidu.denominator, '腾讯 ' + SKILLS.meta.tencent.denominator, '优先级', '判断'], signals.map(function (skill) {
         return ['<strong>' + escapeHtml(skill.name) + '</strong>', text(domainLabels[skill.domain] || skill.domain), skill.baidu == null ? '—' : '<div class="bar-cell"><div class="bar"><i style="width:' + skill.baidu + '%"></i></div><span>' + skill.baidu + '%</span></div>',
           skill.tencent == null ? '—' : '<div class="bar-cell"><div class="bar"><i class="cold" style="width:' + skill.tencent + '%"></i></div><span>' + skill.tencent + '%</span></div>', badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim'), text(skill.judgement)];
-      })) + callout('如何读这些数字', '关键词存在率不等于岗位硬要求率，也不能证明候选人供给。<b>GraphRAG 零命中只说明不适合作为 ATS 主标签，不代表图记忆技术无价值。</b>', '') +
-      section('学习路线与可验证交付物') + '<div class="grid c2">' + roadmap.map(function (skill) {
-        return '<article class="card"><div class="card-head"><strong>' + escapeHtml(skill.name) + '</strong>' + badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim') +
-          '</div>' + kv([['目标水平', skill.target], ['截止阶段', skill.deadline], ['交付证据', skill.deliverable]]) + '<label class="mini-check"><input type="checkbox" data-check-id="' +
-          escapeHtml(skill.id) + '"' + (state.checks.has(skill.id) ? ' checked' : '') + '> 当前会话标记完成</label></article>';
-      }).join('') + '</div>' +
-      section('面试四条能力线') + '<div class="grid c2">' + SKILLS.interviewTracks.map(function (track) {
+      })) + callout('如何读这些数字', '关键词存在率不等于岗位硬要求率，也不能证明候选人供给。<b>GraphRAG 零命中只说明不适合作为 ATS 主标签，不代表图记忆技术无价值。</b>', ''), false) +
+      details('面试四条能力线（2028 准备框架）', '<div class="grid c2">' + SKILLS.interviewTracks.map(function (track) {
         return '<div class="card"><div class="card-head"><strong>' + escapeHtml(track.name) + '</strong>' + badge(track.target, 'b-info') + '</div>' + list(track.items) + '</div>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>', false) + '</div>';
+  }
+
+  // 学习参考渲染：kind=book/web/paper；local 指向 site/papers/ 的本地 PDF
+  var refKindIcons = { book: '📕', web: '🌐', paper: '📄' };
+  function skillRefs(refs) {
+    if (!arr(refs).length) return '';
+    return '<h4 class="sub">学习参考（从这里开始）</h4><div class="ref-list">' + refs.map(function (r) {
+      var href = r.local ? 'papers/' + encodeURI(r.local) + '.pdf' : (r.url || '');
+      var body = href
+        ? '<a href="' + encodeURI(href) + '"' + (r.local ? ' target="_blank" rel="noreferrer"' : '') + '>' + escapeHtml(r.label) + '</a>'
+        : escapeHtml(r.label);
+      return '<div class="ref-item"><span aria-hidden="true">' + (refKindIcons[r.kind] || '•') + '</span> ' + body +
+        (r.local ? ' <span class="mono-sm">本地PDF</span>' : '') + '</div>';
+    }).join('') + '</div>';
   }
 
   function renderPortfolio() {
@@ -611,7 +755,9 @@
         return section((projectIndex + 1) + ' · ' + project.name) + '<article class="project card pad-lg"><div class="project-head"><div><span class="badge b-info">' + escapeHtml(project.status) + '</span><h3>' + escapeHtml(project.name) +
           '</h3><p>' + escapeHtml(project.problem) + '</p></div>' + claimBadge(project.claimType) + '</div><div class="grid c2"><div><h4 class="sub">架构</h4>' + list(project.architecture) + '</div><div><h4 class="sub">关键权衡</h4>' + list(project.tradeoffs) + '</div></div>' +
           '<h4 class="sub">四项核心指标</h4><div class="grid c4">' + project.metrics.map(function (metric) {
-            return stat(metric.value == null ? '待实测' : metric.value, metric.label, metric.value == null ? '目标位，不是成果' : 'measured', metric.value == null ? 'warn' : 'good');
+            var note = metric.value == null ? '目标位，不是成果' : (metric.status === 'preliminary' ? '初步实测（n=1），待补重复' : 'measured');
+            var cls = metric.value == null ? 'warn' : (metric.status === 'preliminary' ? '' : 'good');
+            return stat(metric.value == null ? '待实测' : metric.value, metric.label, note, cls);
           }).join('') + '</div><h4 class="sub">里程碑</h4><div class="timeline">' + project.milestones.map(function (mile) {
             return '<article class="tl-item milestone"><div class="tl-when">' + escapeHtml(mile.stage) + '</div><div class="tl-what">' + escapeHtml(mile.title) + '</div><div class="tl-desc">' + list(mile.tasks) +
               '</div><div class="tl-check"><b>验收：</b>' + escapeHtml(mile.acceptance) + '</div><label class="mini-check"><input type="checkbox" data-check-id="' + escapeHtml(mile.id) + '"' + (state.checks.has(mile.id) ? ' checked' : '') + '> 里程碑完成</label></article>';
@@ -623,40 +769,43 @@
   }
 
   function renderCareer() {
-    return '<div class="page">' + pageHead('career', 'Translate evidence into hiring language') +
+    return '<div class="page">' + pageHead('career', 'Direction reference only') +
+      callout('本页定位：方向参考', '正式求职在 2028 年秋，距今还有两年以上——届时市场、JD 与公司策略大概率都会过时。本页只保留<b>长期有效的方向性判断</b>（定位、叙事骨架、投递优先级）；临近 2027 年 12 月时按当年市场数据<b>重做整页</b>，而不是沿用这里的具体信息。当前真正可执行的是「实习与岗位」页的实习阶梯。', 'warn') +
       section('一句话定位') + '<blockquote><p>' + escapeHtml(PORTFOLIO.narratives.positioning) + '</p></blockquote>' +
       '<div class="grid c2"><div class="card"><strong>为什么读研</strong><p>' + escapeHtml(PORTFOLIO.narratives.whyGraduate) + '</p></div><div class="card"><strong>论文如何服务岗位</strong><p>' + escapeHtml(PORTFOLIO.narratives.thesisToJob) + '</p></div></div>' +
       callout('不要把自己说成 GraphRAG 专家', escapeHtml(PORTFOLIO.narratives.notGraphRag) + tags(PORTFOLIO.narratives.labels), 'warn') +
-      section('学术语言 → JD 语言') + table(['学术/实现语言', '求职语言'], RESEARCH.translate.map(function (r) { return [safeRich(r[1]), text(r[0])]; })) +
-      section('简历 bullet：只在实测后填数字') + PORTFOLIO.resumeBullets.map(function (item) {
-        return '<div class="card"><div class="card-head"><strong>' + escapeHtml(item.project) + '</strong>' + badge('模板', 'b-mid') + '</div><p class="resume-line">' + escapeHtml(item.template) + '</p></div>';
-      }).join('') +
-      section('投递优先级') + '<div class="grid c3">' + PORTFOLIO.applicationPriority.map(function (item) {
+      section('投递优先级（方向参考）') + '<div class="grid c3">' + PORTFOLIO.applicationPriority.map(function (item) {
         return '<div class="job tier-' + escapeHtml(item.tier) + '"><div class="jh"><div class="jt">Tier ' + escapeHtml(item.tier) + '</div></div>' + tags(item.targets) + '<div class="jq">' + escapeHtml(item.reason) + '</div></div>';
       }).join('') + '</div>' +
-      section('面试开场的证据顺序') + '<div class="story-flow">' + [
-        ['生产背景', '我做过 Python 后端和 AI 应用，理解可靠性与交付约束。'], ['真实问题', '长任务中的记忆、上下文和工具失败无法靠 prompt 补丁解决。'],
-        ['研究动作', '我把问题形式化为异构图上的组织、压缩与检索，并做双轨评测。'], ['工程证据', 'AgentParliament v2 用 Trace/Eval/Memory 报告成功率、成本、P99 与吞吐。'],
-        ['岗位匹配', '因此我适合 Agent Runtime、Harness、评测、记忆与知识工程团队。']
-      ].map(function (s, i) { return '<div class="story-step"><span>' + (i + 1) + '</span><strong>' + s[0] + '</strong><p>' + s[1] + '</p></div>'; }).join('') + '</div></div>';
+      section('面试开场的证据顺序（骨架，细节届时重填）') + '<div class="story-flow">' + [
+        ['生产背景', '我做过 Python 后端和 AI 应用，理解可靠性与交付约束。'], ['真实问题', '多模型流水线的「假成功」——宣称完成但证据不成立——无法靠 prompt 补丁解决。'],
+        ['研究动作', '我把「成功」拆成声明/证据/状态三层，做类型学、基准与检测器，并延伸到记忆后端的成本-精度-延迟评测。'], ['工程证据', 'Atlas（假成功检测 + 哈希断言 + JSONL 台账）与 AgentParliament（三级权限交叉审查）是可复跑的测量基础设施。'],
+        ['岗位匹配', '因此我适合 Agent Runtime、Harness、评测、可观测与知识工程团队。']
+      ].map(function (s, i) { return '<div class="story-step"><span>' + (i + 1) + '</span><strong>' + s[0] + '</strong><p>' + s[1] + '</p></div>'; }).join('') + '</div>' +
+      '<p class="mono-sm">简历 bullet 模板保留在 data/portfolio.js（resumeBullets），只在实测出数字后启用；本页 2027.12 重做时一并刷新。</p></div>';
   }
 
   function renderVerify() {
-    var items = JOBS.verification.filter(function (item) {
+    // 渲染按影响排序（critical → high → medium），数据顺序不动
+    var impactOrder = { critical: 0, high: 1, medium: 2 };
+    var items = JOBS.verification.slice().sort(function (a, b) {
+      return (impactOrder[a.impact] != null ? impactOrder[a.impact] : 9) - (impactOrder[b.impact] != null ? impactOrder[b.impact] : 9);
+    }).filter(function (item) {
       var handled = state.checks.has(item.id);
       var statusOk = state.verifyStatus === 'all' ||
         (state.verifyStatus === 'done' ? handled : !handled);
       return (state.verifyImpact === 'all' || item.impact === state.verifyImpact) && statusOk;
     });
     return '<div class="page">' + pageHead('verify', 'Uncertainty register') +
-      callout('核验排序规则', '先处理会改变论文能否毕业、实习能否外出、方向是否有算力的未知条件；低影响信息不要抢占注意力。状态修改仅在当前会话有效。', 'warn') +
+      pageSummary(JOBS.verifySummary) +
+      callout('核验排序规则', '先处理会改变论文能否毕业、实习能否外出、方向是否有算力的未知条件；低影响信息不要抢占注意力。勾选状态自动保存在本机。', 'warn') +
       '<div class="filters filter-stack">' + filterGroup('影响', 'verifyImpact', [['all', '全部'], ['critical', '关键'], ['high', '高'], ['medium', '中']], state.verifyImpact) +
       filterGroup('本次会话', 'verifyStatus', [['all', '全部'], ['open', '未处理'], ['done', '已标记']], state.verifyStatus) + '</div>' +
       '<div class="result-count">显示 ' + items.length + ' / ' + JOBS.verification.length + ' 项</div><div class="verification-list">' + items.map(function (item) {
         var checked = state.checks.has(item.id);
         return '<article class="card verify-card ' + (checked ? 'done' : '') + '"><div class="card-head"><div><span class="mono-sm">' + escapeHtml(item.area) + '</span><h3>' + escapeHtml(item.title) +
           '</h3></div><div>' + badge(item.impact, item.impact === 'critical' ? 'b-low' : item.impact === 'high' ? 'b-mid' : 'b-dim') + ' ' + evidenceBadge(item.evidence) + '</div></div><p><b>核验动作：</b>' + escapeHtml(item.action) +
-          '</p><label class="mini-check"><input type="checkbox" data-check-id="' + escapeHtml(item.id) + '"' + (checked ? ' checked' : '') + '> 当前会话标记已处理</label></article>';
+          '</p><label class="mini-check"><input type="checkbox" data-check-id="' + escapeHtml(item.id) + '"' + (checked ? ' checked' : '') + '> 标记已处理</label></article>';
       }).join('') + '</div>' +
       section('每月巡检') + checkList('monthly', TOOLS.monthly.t, TOOLS.monthly.items.map(function (item, i) { return { id: 'monthly-' + i, text: item }; }), '建议在你后续的持久化系统中设为重复任务。') + '</div>';
   }
@@ -758,6 +907,7 @@
       button.addEventListener('click', function () {
         var name = button.getAttribute('data-filter');
         state[name] = button.getAttribute('data-value');
+        if (name === 'track') storeSet(STORE.track, state.track);
         render(true);
       });
     });
@@ -765,6 +915,7 @@
       input.addEventListener('change', function () {
         var id = input.getAttribute('data-check-id');
         if (input.checked) state.checks.add(id); else state.checks.delete(id);
+        persistChecks();
         render(true);
       });
     });
@@ -785,8 +936,12 @@
     DATA.rules.forEach(function (item) { entries.push({ route: 'baseline', title: item.q, detail: stripHtml(item.a) }); });
     DATA.advisor.papers.forEach(function (item) { entries.push({ route: 'baseline', title: item.t, detail: item.j + ' ' + item.doi }); });
     RESEARCH.angles.forEach(function (item) { entries.push({ route: 'research', title: item.name, detail: item.problem }); });
-    allPapers().forEach(function (item) { entries.push({ route: 'reading', title: item.t, detail: (item.ax || '') + ' ' + item.why }); });
-    TOOLS.discover.forEach(function (item) { entries.push({ route: 'tools', title: item.n, detail: item.use + ' ' + item.how }); });
+    Object.keys(RESEARCH.reading.tracks).forEach(function (tid) {
+      var t = RESEARCH.reading.tracks[tid];
+      entries.push({ route: 'reading', title: t.name, detail: t.pitch + ' ' + (trackShort[tid] || '') });
+    });
+    allPapers().forEach(function (item) { entries.push({ route: 'reading', title: item.t, detail: (item.ax || '') + ' ' + (item.intro || '') + ' ' + item.why }); });
+    TOOLS.core.forEach(function (item) { entries.push({ route: 'tools', title: item.n, detail: item.use + ' ' + (item.ref || '') }); });
     JOBS.teams.forEach(function (item) { entries.push({ route: 'jobs', title: item.company + ' · ' + item.name, detail: item.summary + ' ' + item.tags.join(' ') }); });
     SKILLS.signals.forEach(function (item) { entries.push({ route: 'skills', title: item.name, detail: item.judgement }); });
     PORTFOLIO.projects.forEach(function (item) { entries.push({ route: 'portfolio', title: item.name, detail: item.problem }); });
@@ -845,6 +1000,12 @@
   themeToggle.addEventListener('click', function () {
     var light = document.body.classList.toggle('light');
     themeToggle.setAttribute('aria-pressed', String(light));
+    storeSet(STORE.theme, light ? 'light' : 'dark');
+  });
+  document.getElementById('reset-progress').addEventListener('click', function () {
+    state.checks.clear();
+    storeDel(STORE.checks);
+    render(true);
   });
   skipLink.addEventListener('click', function (event) {
     // 用焦点转移代替 hash 跳转，避免 #content 触发路由回退到仪表盘
@@ -858,6 +1019,14 @@
       event.preventDefault(); searchInput.focus();
     }
   });
+
+  // 恢复本机保存的主题与方向选择（localStorage 不可用时静默跳过）
+  if (storeGet(STORE.theme) === 'light') {
+    document.body.classList.add('light');
+    themeToggle.setAttribute('aria-pressed', 'true');
+  }
+  var savedTrack = storeGet(STORE.track);
+  if (savedTrack && RESEARCH.reading.tracks[savedTrack]) state.track = savedTrack;
 
   render();
 }());

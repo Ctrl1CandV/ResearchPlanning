@@ -1,234 +1,38 @@
-/* 板块 3：科研工具链与规范
-   注意：本板块由主 Agent 依据既有知识撰写，未经本轮检索逐条核实。
-   工具版本、免费额度、政策条款均可能已变化，使用前请自行确认。 */
+/* 板块 3：科研工具链（2026-08-28 缩编为速查卡）
+   完整方法论（三遍读法、实验纪律、写作投稿、AI 伦理、检查表等）已整体移交
+   grad-companion 插件：D:\Program Project\grad-companion\docs\RESEARCH-PLAYBOOK.md。
+   本页只保留「日常真正会打开」的最小集合。 */
 window.TOOLS = {
-  disclaimer:'本板块与其他板块的证据等级不同。前面几个板块的数据来自本轮实际抓取的官方 PDF、招聘 API、arXiv/Crossref/GitHub API；<b>本板块基于既有知识整理，未逐条核实</b>。工具的免费额度、版本特性、期刊政策都会变，尤其是「AI 写作的期刊政策」这一节，投稿前必须去目标期刊的 Guide for Authors 原文确认。',
+  disclaimer:'本页是速查卡，不是教程。文献检索、论文精读、实验台账、投稿门禁的主力工作流走 <b>grad-companion 插件</b>；被缩编的完整方法论已归档为该插件的优化策略文档（见下），需要时直接看那份文档。',
 
-  // ---------- 1 文献发现 ----------
-  discover: [
-    { n:'Google Scholar', use:'兜底检索 + 引用追踪 + 邮件订阅', how:'为你的核心关键词（agent memory / graph clustering）设 Alert；为 A-MEM、Zep、LightRAG 这几篇设"引用提醒"，有人引用它们时你会第一时间知道——这是监控竞争团队最省力的办法', tier:'必备', free:true },
-    { n:'arXiv + arxiv-sanity / Hugging Face Papers', use:'追最新预印本', how:'你的方向 2026 年的新工作基本只在 arXiv。cs.CL / cs.AI / cs.LG 三个类目 + 关键词过滤。HF Papers 的社区讨论能快速判断一篇是否值得读', tier:'必备', free:true },
-      { n:'Semantic Scholar', use:'引用量、影响力引用、作者画像', how:'它提供可脚本化的学术图谱接口；引用量是动态快照，不能代替对论文内容和引用语境的判断', tier:'必备', free:'以当前政策为准' },
-      { n:'Crossref', use:'核验 DOI、作者、刊名、年份和卷期', how:'引用前用标题或 DOI 反查元数据；若 Zotero、DBLP 与出版社信息冲突，以出版社页面和 Crossref 记录交叉确认', tier:'必备', free:true },
-      { n:'OpenAlex', use:'开放学术图谱与批量分析', how:'适合查作者、机构、主题和引用网络；用于发现候选论文，不把自动主题标签当成人工分类结论', tier:'强推', free:'以当前政策为准' },
-      { n:'ResearchRabbit / Litmaps', use:'维护前向、后向引文网络', how:'从 5—10 篇种子论文建立文献图，每月检查新增引用；免费额度和功能可能变化，使用前复核', tier:'可选', free:'有限免费/以当前政策为准' },
-      { n:'Connected Papers', use:'看一篇论文的“学术邻域”图', how:'输入 A-MEM 快速发现相近工作；相似图是发现入口，不是系统综述或完整引用网络', tier:'强推', free:'有限免费' },
-    { n:'DBLP', use:'查会议/期刊的准确出处与作者全部产出', how:'判断一篇论文究竟发在哪（arXiv 版本经常不写会议）、以及查导师和竞争团队的完整产出列表。注意 DBLP 覆盖不完整——导师 10 篇 SCI 里 DBLP 只索引了 4 篇', tier:'强推', free:true },
-    { n:'Papers with Code', use:'找有代码的实现', how:'按 benchmark（如 LoCoMo）看排行榜与对应代码。避免复现无代码论文的坑', tier:'强推', free:true },
-    { n:'CNKI / 万方', use:'中文核心期刊 + 硕博学位论文', how:'两个具体用法：① 按"导师=刘洪涛 单位=重庆邮电大学"检索学位论文库，看师兄师姐做了什么、致谢里写了去向 ② 中文核心投稿前看目标期刊近期风格。需机构 IP，入学后用校园网', tier:'国内特需', free:'校园网' },
-    { n:'LetPub / 中科院分区表', use:'查期刊分区、影响因子、审稿周期', how:'投稿前必查。分区每年会变，本站列的"SCI 二区"是沿用旧信息，你要自己核实当年版本', tier:'投稿前必查', free:true }
+  core: [
+    { n:'grad-companion 插件', use:'主力工作流：每日文献漏斗（grad-radar）、检索设计（literature-search）、精读（paper-reader）、选题台账（idea-ledger）、实验台账（run-provenance）、投稿门禁（submission-gate）', ref:'ZCode 插件市场 · 本地开发 D:\\Program Project\\grad-companion' },
+    { n:'Google Scholar', use:'引用追踪 + Alert：为 5—10 篇种子论文设引用提醒，是监控竞争团队最省力的办法', ref:'scholar.google.com' },
+    { n:'arXiv（cs.CL / cs.AI / cs.LG）', use:'2025 年后的新工作基本只在这里；配合 grad-radar 的每日漏斗过滤', ref:'arxiv.org' },
+    { n:'Semantic Scholar / OpenAlex', use:'引用网络、作者画像，可脚本化批量分析', ref:'semanticscholar.org · openalex.org' },
+    { n:'DBLP', use:'核对 venue 与作者产出（注意覆盖不完整，不能只看它评价一个作者）', ref:'dblp.org' },
+    { n:'Crossref', use:'引用前核对 DOI/作者/刊名/年份，元数据冲突以出版社页面为准', ref:'crossref.org' },
+    { n:'Zotero + Better BibTeX', use:'文献库唯一事实源；选一个坚持三年不换', ref:'zotero.org' },
+    { n:'Obsidian', use:'文献笔记双链，精读四问模板（问题/方法/实验设定/与我的关系）', ref:'obsidian.md' },
+    { n:'Papers with Code', use:'按 benchmark 找有代码的实现，避免复现无代码论文', ref:'paperswithcode.com' },
+    { n:'CNKI / 万方', use:'查导师指导过的学位论文（师兄师姐做了什么、去向）；入学后校园网可用', ref:'cnki.net' },
+    { n:'LetPub / 中科院分区表', use:'投稿前查分区与审稿周期（每年会变，以当年为准）', ref:'letpub.com.cn' }
   ],
 
-  // ---------- 2 文献管理 ----------
-  manage: {
-    pick:'<b>选一个然后坚持三年，不要中途换。</b>换文献管理器的迁移成本远高于工具本身的差异。我的建议：Zotero，因为免费、开源、插件生态最好、且能配合 Better BibTeX 与 LaTeX 无缝协作。',
-    items:[
-      { n:'Zotero + Better BibTeX', why:'免费开源；浏览器采集；PDF 全文检索；Better BibTeX 生成稳定 citation key。附件同步、第三方插件兼容性和免费空间会变化，配置前以当前版本文档为准；不要把含版权或保密内容的附件同步到未经授权的服务', tier:'推荐', free:true },
-      { n:'Mendeley / EndNote', why:'EndNote 在国内期刊投稿时偶尔被要求；Mendeley 界面友好但被 Elsevier 收购后功能停滞', tier:'备选', free:'部分' },
-      { n:'Obsidian（配 Zotero Integration 插件）', why:'把"读了什么"和"想到什么"连起来。文献笔记双链，写 related work 时能顺着链条组织——这一点纯文献管理器做不到', tier:'强推给你', free:true }
-    ],
-    workflow:[
-      '每篇论文进 Zotero 时立刻打三个标签：<b>层级</b>（L0必读/L1方法/L2图学习/L3多Agent）、<b>关系</b>（baseline / 对手 / 可引用 / 已饱和）、<b>状态</b>（待读/读过/精读过）',
-      '精读的论文在 Obsidian 建一页，固定四个小标题：<b>它解决什么问题 / 它的方法一句话 / 它的实验设定（数据集+baseline+指标）/ 它和我的关系</b>。第四项最重要，也是最容易偷懒不写的',
-      '把"它的实验设定"单独抽出来，你会发现整个领域的 baseline 和数据集其实很集中——这份汇总直接就是你论文实验章节的设计依据',
-      '每读完一篇能引用的，在 Obsidian 里链接到你正在写的 related work 页。三个月后写论文时，related work 已经自动长好了骨架'
-    ]
+  companion: {
+    name:'grad-companion · 方法论归档',
+    playbook:'D:\\Program Project\\grad-companion\\docs\\RESEARCH-PLAYBOOK.md',
+    note:'2026-08-28 起本站不再维护长篇方法论。文献发现三层分工、三遍读法与精读四问、实验可复现 12 条检查表、Elsevier 写作骨架、投稿流程与伦理红线、月度巡检清单，全部在该文档中，并已按 skill 职责标注归属（grad-radar / paper-reader / run-provenance / submission-gate / weekly-brief）。插件迭代时以该文档为优化策略输入。'
   },
 
-  // ---------- 3 读论文方法 ----------
-  reading: {
-    threePass:{
-      t:'三遍法（Keshav 的经典方法，仍然是最有效的）',
-      p:[
-        { n:'第一遍 · 5-10 分钟', d:'只读标题、摘要、引言、章节标题、结论、参考文献扫一眼。回答五个问题：类型（新方法/分析/综述）、上下文（和哪些工作对话）、正确性（假设看起来成立吗）、贡献、清晰度。<b>读完就决定要不要第二遍</b>——大部分论文应该在这里被淘汰' },
-        { n:'第二遍 · 1 小时', d:'读正文，看图表，忽略证明细节。<b>重点是图表</b>：实验设定表和主结果表能告诉你 90% 的信息。同时标出所有你不懂的术语和未读的引文。读完应该能向别人复述这篇文章做了什么' },
-        { n:'第三遍 · 4-5 小时', d:'虚拟复现：假装你是作者，重新做一遍。挑战每个假设，找出隐含前提和未说明的实验细节。<b>只对你的 baseline 和直接竞争对手做第三遍</b>——本站 L0 层标了 ⭐ 的那几篇' }
-      ]
-    },
-    tips:[
-      '<b>先读实验设定，再读方法。</b>看它用什么数据集、比了谁、用什么指标。如果实验设定和你不兼容，方法再好也无法作为你的 baseline',
-      '<b>专门去找它的局限性与失败案例。</b>作者主动承认的局限往往就是下一篇论文的选题。你的五个候选切口有三个是从别人的 limitation 段落里长出来的',
-      '<b>读综述时不要顺序读，读它的分类表。</b>综述最有价值的是分类框架（taxonomy）和 open problems 一节，正文的方法罗列可以跳',
-      '<b>对撞方向的论文要读得比别人细。</b>A-MEM、Zep、2606.06036 这三篇你要读到能说出"它在第几步做了什么选择、为什么那个选择在我的场景下不成立"的程度。审稿人一定会问你和它们的区别'
-    ]
-  },
-
-  // ---------- 4 实验工程 ----------
-  experiment: {
-    note:'你有四年后端经验，这一节大部分内容对你来说是常识。但学术实验和工程有一个关键差异：<b>你要能在三个月后向审稿人证明某个数字是怎么来的</b>。这要求的不是代码质量，是可追溯性。',
-    stack:[
-      { g:'环境', items:[
-        ['conda / uv','环境隔离。uv 比 pip 快很多，2025 年后逐渐成主流'],
-        ['Docker','LightRAG 等 baseline 用 Docker 起最省事。你有后端背景，这是优势'],
-        ['requirements 锁版本','图学习库（PyG/DGL）对 torch 和 CUDA 版本极度敏感，不锁版本三个月后必然复现失败']
-      ]},
-      { g:'实验管理', items:[
-        ['Hydra / OmegaConf','配置管理。所有超参从 yaml 读，不要写死在代码里——这是能否做出干净消融实验的分水岭'],
-        ['Weights & Biases 或 TensorBoard','训练曲线与指标记录。W&B 学术免费，能自动记录超参与结果的对应关系'],
-        ['固定随机种子 + 多次取均值方差','图聚类的方差很大。论文里报单次结果会被审稿人质疑，至少 3 次取 mean±std']
-      ]},
-      { g:'图学习', items:[
-        ['PyTorch Geometric (PyG)','首选。异构图支持成熟（HeteroData / HANConv / HGTConv 都有官方实现），Planetoid/DBLP/IMDB 数据集一行加载'],
-        ['DGL','备选。PyG 装不上时的退路'],
-        ['NetworkX','小图分析、模块度计算、可视化。python-louvain / leidenalg 做经典社区发现 baseline'],
-        ['scikit-learn','NMI / ARI 等聚类指标的标准实现，直接用它避免自己写错']
-      ]},
-      { g:'LLM 与检索', items:[
-        ['LLM API（国内可用 + 便宜的那档）','抽取阶段用便宜模型，生成阶段用好模型。这是控制预算的关键'],
-        ['缓存层（必须自己写）','把每次 LLM 抽取的结果按输入哈希落盘。这一条能救你的预算——之后所有图算法实验复用同一份记忆图，一分钱不花'],
-        ['bge-m3 / gte 类嵌入模型','本地跑，免费，够用'],
-        ['Neo4j 或 FalkorDB','图存储。百度那条 JD 唯一点名的两个，顺手学了对求职也有用'],
-        ['向量库（Milvus / Qdrant / 甚至 FAISS）','baseline 需要']
-      ]}
-    ],
-    discipline:[
-      '<b>缓存 LLM 调用结果，从第一天就做。</b>这是本节最重要的一条。你的实验大部分是在改图算法，而 LLM 抽取的结果是固定输入，没有理由重复付费',
-      '<b>每次实验的输出目录带 git commit hash + 时间戳 + config 快照。</b>三个月后你一定会遇到"这个数字是哪次跑出来的"，没有这个就只能重跑',
-      '<b>用退化设定做正确性验证。</b>把你的新模块关掉，结果应该精确等于 baseline。不相等就是有 bug，而不是"有创新"。这个技巧能省掉大量 debug 时间',
-      '<b>结果表用脚本生成 LaTeX，不要手抄。</b>手抄一定会错，而且改一次数据要抄一遍',
-      '<b>先跑通最小规模的完整闭环，再扩规模。</b>先用 5 段对话跑通"建图→聚类→检索→评测"全流程，再上全量。不要先花两周做完美的建图'
-    ]
-  },
-
-  // ---------- 5 写作 ----------
-  writing: {
-    stack:[
-      { n:'LaTeX（Overleaf 或本地 TeX Live + VS Code）', use:'Elsevier 系期刊（KBS/ESWA/Neurocomputing/ASOC）都提供 LaTeX 模板 elsarticle。Overleaf 免费版够用，协作方便，导师改稿也容易', tier:'必备' },
-      { n:'Word + EndNote', use:'部分中文期刊只收 Word。中文核心投稿可能需要', tier:'按刊而定' },
-      { n:'Better BibTeX 导出 .bib', use:'从 Zotero 一键导出，citation key 稳定', tier:'必备' },
-      { n:'draw.io / Inkscape / matplotlib', use:'方法框架图用 draw.io 或 Inkscape 导出 PDF 矢量图；实验图表用 matplotlib 直接出 PDF。<b>不要用位图</b>，审稿人放大看会糊', tier:'必备' },
-      { n:'Grammarly / LanguageTool', use:'英文语法与表达检查。非英语母语作者的必备，能显著降低"language needs improvement"这类审稿意见', tier:'强推' }
-    ],
-    structure:{
-      t:'Elsevier 系方法类论文的标准骨架（导师最熟的叙事）',
-      s:[
-        ['Abstract','问题 → 现有方法的具体不足 → 我们提出什么 → 关键结果数字。最后一句给最有力的数字'],
-        ['1 Introduction','四段式：领域背景与重要性 → 现有工作分两三类并指出各自局限 → 本文的观察与思路 → 贡献列表（3-4 条 bullet）+ 论文组织'],
-        ['2 Related Work','按你自己的分类组织，不要按时间。每小节末尾要有一句"但它们都没有解决 X"——这是把 related work 变成论证而不是罗列的唯一方法'],
-        ['3 Preliminaries / Problem Formulation','符号表 + 形式化定义。你的 G=(V,E,X,T) 异构属性图定义放这里'],
-        ['4 Method','总体框架图 → 逐模块展开 → 损失函数 → 复杂度分析。<b>导师的方法论签名要在这里显形</b>：一个"融合"模块 + 一个"知识/属性增强"模块'],
-        ['5 Experiments','数据集 → baseline → 实现细节与超参 → 主结果 → 消融 → 参数敏感性 → 可视化/案例分析。Elsevier 审稿人对"实验充分性"要求高，宁多不少'],
-        ['6 Conclusion','总结 + 局限 + future work。局限要真诚写，这能挡掉一部分审稿意见']
-      ]
-    },
-    craft:[
-      '<b>先写 Method 和 Experiments，最后写 Introduction。</b>Intro 是最难的，要等你知道自己到底做出了什么才能写好',
-      '<b>贡献列表要写"我做了什么"，不要写"我们研究了什么"。</b>动词用 propose / design / formulate，不用 study / investigate',
-      '<b>每张图要能脱离正文被看懂。</b>caption 写完整句子，说明这张图在证明什么',
-      '<b>主结果表的最优值加粗，次优加下划线。</b>这是这个领域的惯例，不做审稿人会觉得不专业',
-      '<b>提前读三篇目标期刊近一年的同类论文，模仿它们的句式和章节比例。</b>这不是抄，是学一个期刊的话语规范。W11 那周就是干这个的'
-    ]
-  },
-
-  // ---------- 6 AI 使用规范 ----------
-  ai: {
-    warn:'这一节的具体条款请务必以投稿时目标期刊的 Guide for Authors 原文为准。政策在快速变化，且不同出版社差异明显。下面是我理解的普遍共识，不构成合规依据。',
-    consensus:[
-      { rule:'AI 不能列为作者', why:'ICMJE、COPE、Elsevier、Springer Nature、IEEE 的立场一致：作者身份要求承担责任，AI 无法承担。这一条基本没有例外' },
-      { rule:'用 AI 改进语言表达通常可接受，但可能需要声明', why:'Elsevier 的政策大意是：仅用于提升可读性与语言时需在稿件中声明，且作者对最终内容负全责。<b>声明的具体位置和措辞各刊不同</b>' },
-      { rule:'用 AI 生成研究内容、结果、图像通常不被接受', why:'涉及数据造假风险。生成实验数据或图像基本是红线' },
-      { rule:'审稿过程中不得把稿件上传给 AI 工具', why:'违反保密义务。你以后当审稿人也要遵守' },
-      { rule:'AI 生成的引文必须逐条核实', why:'幻觉引文是当前最常见的学术不端来源。<b>本站给出的所有 arXiv 编号是按标题反查确认过的，但你引用前仍应自己再核一遍</b>' }
-    ],
-    practical:[
-      '<b>可以放心用的：</b>润色英文表达、检查语法、翻译理解外文文献、解释你不熟的数学推导、给代码写注释、生成实验脚本的样板代码、整理文献笔记',
-      '<b>要谨慎并声明的：</b>用 AI 起草段落再自己重写、用 AI 生成图表代码',
-      '<b>不要做的：</b>让 AI 写完整章节直接投、让 AI 生成或补全实验数据、让 AI 生成参考文献列表、把未发表稿件贴进不确定数据政策的在线工具',
-      '<b>一个实务建议：</b>用 AI 辅助的痕迹要自己清理干净。典型特征是过度对称的句式、大量"首先/其次/此外"、以及那种正确但空洞的过渡句。审稿人对这种文风越来越敏感'
-    ]
-  },
-
-  // ---------- 7 投稿 ----------
-  submit: {
-    flow:[
-      { s:'选刊', d:'看三件事：<b>导师发过没有</b>（这是最强信号，他知道这个刊的口味和审稿节奏）、scope 是否匹配、审稿周期是否来得及。你的首选池就是 KBS / ESWA / Neurocomputing / ASOC / EAAI' },
-      { s:'查格式', d:'下载目标期刊的 Guide for Authors 与 LaTeX 模板。字数限制、图表要求、参考文献格式、是否要 highlights、是否要 graphical abstract——这些不合格会直接被 desk reject' },
-      { s:'Cover Letter', d:'一页以内：这篇做了什么、为什么适合这个刊、声明未同时投稿。可以推荐审稿人（同领域但无利益冲突）' },
-      { s:'投稿系统', d:'Elsevier 系走 Editorial Manager。第一次投会花掉半天填元数据，预留时间' },
-      { s:'With Editor → Under Review', d:'Elsevier 系常见节奏是编辑初审几天到两周，外审一到三个月。<b>超过三个月无动静可以礼貌催一次</b>' },
-      { s:'Major / Minor Revision', d:'Major revision 是好结果，不是坏结果。<b>逐条回应，每条先引用审稿人原话，再说你改了什么、改在哪一页哪一行</b>。态度要诚恳，不同意的地方要给证据而不是辩解' },
-      { s:'Accept', d:'校样阶段仔细核对公式和图表，这是最后一次改的机会' }
-    ],
-    reject:'<b>被拒是常态，重点是转投的速度。</b>拿到拒稿意见后当周就改，两周内转投下一个刊。Elsevier 系刊之间格式差异小，转投成本低。不要因为一次拒稿停摆一个月——你的时间预算不允许。',
-    ethics:[
-      '<b>一稿不能多投。</b>这是硬红线，被发现会进黑名单',
-      '<b>会议论文扩展成期刊要明确声明</b>并说明扩展了多少（通常要求 30% 以上新内容）',
-      '<b>预印本（arXiv）通常不影响后续期刊投稿</b>，Elsevier 多数刊允许。但要确认目标刊的 preprint policy',
-      '<b>作者顺序和通讯作者要事先和导师说清楚。</b>他的模式是学生一作、他挂后位或通讯，这对你有利，但要确认',
-      '<b>致谢里要写基金号。</b>入学后问清导师有哪些项目可以挂——这也是判断他经费状况的一个侧面途径'
-    ]
-  },
-
-  // ---------- 8 组会与向上管理 ----------
-  advisor: [
-    { t:'固定节奏比单次质量重要', d:'2013 版培养方案里写"论文工作期间应每周一次向导师汇报研究进展"。不管他是否真的要求，你主动保持周报节奏是纯收益：它让你的进展可见，也让偏离方向能被早发现' },
-    { t:'每次汇报只带一个决策点', d:'不要一次抛五个问题。挑一个真正卡住你、且需要他判断的点，其余的自己决定并简单报备。这会让他觉得你不需要被管理' },
-    { t:'汇报里必须有"我已经做了什么"', d:'哪怕是负结果。只讲计划不讲产出的汇报会消耗信任' },
-    { t:'用他的语言汇报', d:'见「术语翻译表」。同一件事，说"记忆图的社区划分"他能给你实质建议，说"Agent 的 memory consolidation"他可能只能点头' },
-    { t:'关于你的远程工作，主动报备而不是隐瞒', d:'包装成"参与本科导师的产学研合作项目"，说明每周投入时间、以及它如何反哺你的论文（真实的：那是你的实验场景来源）。多数导师反感学生在外接活，但对横向项目接受度高——说法很重要，隐瞒的风险远大于坦白' },
-    { t:'入学第一件事：问清算力', d:'"组里有几张什么卡、能不能长期占用、有没有共享集群"。这个答案会改变你的切口选择，必须在定题前问清' }
-  ],
-
-  noteTemplate: {
-    title:'精读记录模板',
-    fields:[
-      ['Problem','论文解决的具体问题与研究对象'],
-      ['Assumptions','成立所依赖的假设、数据条件与适用边界'],
-      ['Method','一句话方法 + 关键模块与复杂度'],
-      ['Data','数据来源、划分、规模、许可与预处理'],
-      ['Baselines','比较对象是否足够强、是否同口径'],
-      ['Metrics','主指标、统计检验与是否可能被指标投机'],
-      ['Main result','最关键结果；区分作者报告与自己的复现'],
-      ['Limitations','作者承认的局限 + 自己发现的威胁'],
-      ['Reproduction','代码/环境/运行状态/偏差与原始输出位置'],
-      ['Thesis relevance','可引用、可复用、竞争、反例或无关']
-    ]
-  },
-  evidenceWorkflow: {
-    taxonomy:['记忆写入与组织','检索与重排','压缩与遗忘','冲突与治理','评测与系统'],
-    rules:[
-      '维护 claim–evidence matrix：每个论文主张对应原始论文页码、实验表和支持强度',
-      '沿种子论文做后向引文追踪，再做前向引用追踪；记录检索式、数据库和检索日期',
-      'AI 摘要只用于导航；任何进入论文、汇报或网站的事实必须回到原文核验',
-      '引用前核对标题、作者、venue、年份、DOI/arXiv；无法核实就不引用',
-      'Related Work 按问题与方法 taxonomy 组织，不按论文逐篇堆叠'
-    ]
-  },
-  reproducibilityChecklist: [
-    { id:'repro-repo', text:'代码、配置、数据处理脚本和运行入口纳入 Git，记录 commit hash' },
-    { id:'repro-env', text:'锁定 Python、CUDA、PyTorch/PyG 与依赖版本，保存 lockfile 或环境导出' },
-    { id:'repro-data', text:'记录数据来源、版本、许可、划分、预处理和校验值，检查训练/测试泄漏' },
-    { id:'repro-config', text:'每次运行保存完整 config、随机种子、命令、时间戳和硬件信息' },
-    { id:'repro-llm', text:'记录模型/API 版本、检索日期、prompt 模板、温度、token、费用和缓存键' },
-    { id:'repro-raw', text:'保留原始输出、日志、异常、负结果；派生表格和图片由脚本生成' },
-    { id:'repro-runs', text:'随机实验至少 3 次，报告 mean±std；说明确定性设置和仍存在的非确定性' },
-    { id:'repro-baseline', text:'使用强且同口径的 baseline，核对数据划分、预算、模型和调参公平性' },
-    { id:'repro-ablation', text:'完成关键模块消融、参数敏感性、效率与失败案例分析' },
-    { id:'repro-tests', text:'为数据转换、指标和退化设定补 pytest；运行 Ruff，必要时使用 mypy' },
-    { id:'repro-tracker', text:'用 MLflow/W&B/TensorBoard 或结构化本地日志关联运行、指标和 artifact' },
-    { id:'repro-dvc', text:'仅在数据体量和协作需要时引入 DVC，避免为工具而工具' }
-  ],
-  submissionChecklist: [
-    { id:'submit-scope', text:'重新核对目标期刊 scope、Guide for Authors、模板和最新分区口径' },
-    { id:'submit-claims', text:'逐条核验摘要、贡献和结论中的数字能由结果文件复算' },
-    { id:'submit-citations', text:'逐条核对引用元数据与原文语义，不引用未亲自核实的文献' },
-    { id:'submit-figures', text:'图表由脚本生成；文字可读、色盲友好，优先 PDF/SVG 矢量格式' },
-    { id:'submit-ethics', text:'确认作者顺序、基金、利益冲突、数据许可、伦理和预印本政策' },
-    { id:'submit-ai', text:'按目标期刊投稿时政策披露 AI 辅助；AI 不列作者，不生成或补造结果' },
-    { id:'submit-confidential', text:'未将保密稿件、私有代码、公司数据、密钥或个人信息上传到未授权第三方服务' },
-    { id:'submit-artifact', text:'整理环境、README、复现命令、随机种子、模型版本和预期输出' },
-    { id:'submit-proof', text:'检查公式、单位、图表编号、附录、补充材料与参考文献一致性' },
-    { id:'submit-originality', text:'确认未一稿多投；如扩展既有工作，明确披露重合与新增贡献' }
-  ],
   monthly:{
     t:'每月固定动作（建议设成日历重复事项）',
     items:[
-      'Google Scholar Alert 扫一遍：你的关键词 + A-MEM/Zep/LightRAG/GraphRAG 的新引用',
-      'arXiv 扫 cs.CL / cs.AI 关键词，重点看 HKUDS 和 agiresearch 有没有新工作',
-      '牛客搜"Agent 开发 面经"，看最新真题（未登录可读，是最有价值的免费信息源）',
-      '更新本站「待核实清单」的状态，销掉已确认的条目',
-      '检查 openEuler 积分 / OSPP 课题进度',
-      '给 AgentParliament 提交一次有意义的 commit（保持仓库活跃度，这在求职时可见）'
+      '种子论文 Alert 扫一遍：新增引用 = 竞争信号',
+      'arXiv 扫核心关键词，重点看高风险竞争团队（FAGEN 线、SWE-bench 批判线、HKUDS）的新工作',
+      '更新本站「待核验清单」的状态，销掉已确认的条目',
+      '给 Atlas / AgentParliament 各提交一次有意义的 commit（保持仓库活跃度，求职时可见）',
+      '求职临近（2027.12 起）追加：牛客搜「Agent 开发 面经」看最新真题'
     ]
   }
 };
