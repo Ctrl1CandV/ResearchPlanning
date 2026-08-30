@@ -218,8 +218,10 @@
     return '<div class="callout ' + (cls || '') + '"><span class="t">' + escapeHtml(title) + '</span>' + rich(body) + '</div>';
   }
 
-  function details(title, body, open, right) {
-    return '<details class="acc"' + (open ? ' open' : '') + '><summary>' + escapeHtml(title) +
+  function details(title, body, open, right, ref) {
+    // ref=true 渲染「档案层」降噪折叠（acc ref）：只用于背景/口径/情报类折叠块，
+    // 执行层折叠（勾选进度、90 天 Phase、方法草案）不带此标记，视觉保持原样
+    return '<details class="acc' + (ref ? ' ref' : '') + '"' + (open ? ' open' : '') + '><summary>' + escapeHtml(title) +
       '<span class="spacer"></span>' + (right || '') + '</summary><div class="acc-body">' + body + '</div></details>';
   }
 
@@ -257,6 +259,7 @@
 
   // ── 阶段感知：里程碑常量（依据 JOBS.timeline 与实习阶梯的既定节奏，每年复核） ──
   var ENROLL_ISO = '2026-09-01';
+  var GRADUATE_ISO = '2029-06-30';   // 三年主路线图终点的毕业节点锚点，每年复核
   var PHASES = [
     { id: 'pre', until: '2026-09-01', name: '入学前', next: '入学', focus: '完成入学前后立即执行的清单：给导师的邮件/组会材料、公共必读、制度核验、算力确认。' },
     { id: 'y1a', until: '2027-01-12', name: '研一上 · 90 天启动', next: '研一寒假', focus: '评测设施定型（minibank-trap 受控评测）；启动 openEuler 开源实习与 OSPP 报名。' },
@@ -340,12 +343,99 @@
       line('公共必读', cDone, common.length) + line('90 天计划', wDone, RESEARCH.plan90.length) + line('核验销项', vDone, JOBS.verification.length) + '</section>';
   }
 
+  // ── 三年主路线图：把 JOBS.timeline 提升为永远可见的路线层 ──
+  // 节点状态按日期派生：已过（灰）/ 进行中或下一站（强调）/ 未来（空心）；
+  // 不解析 DATA.meta.graduation 的句子，毕业节点用 GRADUATE_ISO 常量 + 原文作说明。
+  function spineStart(when) {
+    var m = /^(\d{4})\.(\d{2})/.exec(when || '');
+    return m ? new Date(m[1] + '-' + m[2] + '-01T00:00:00').getTime() : Infinity;
+  }
+
+  function renderRoadmapSpine(now) {
+    var t = now.getTime();
+    var nodes = arr(JOBS.timeline).map(function (item) {
+      return { when: item.when, title: item.title, detail: item.detail, type: item.type,
+        milestone: !!item.milestone, start: spineStart(item.when) };
+    });
+    nodes.forEach(function (node, i) {
+      // 节点窗口到下一个节点起始月为止；「当前进行中」= 起始 ≤ 今天 < 下一节点起始
+      node.end = i + 1 < nodes.length ? nodes[i + 1].start : new Date(GRADUATE_ISO + 'T00:00:00').getTime();
+    });
+    nodes.push({ when: '2029.06', title: '毕业', detail: DATA.meta.graduation,
+      type: 'plan', milestone: true, start: new Date(GRADUATE_ISO + 'T00:00:00').getTime(), end: Infinity });
+
+    var nowIdx = -1, nextIdx = -1;
+    nodes.forEach(function (node, i) {
+      if (node.start <= t && t < node.end && nowIdx < 0) nowIdx = i;
+      if (node.start > t && nextIdx < 0) nextIdx = i;
+    });
+    // 相邻节点同起始月（如 2028.07 的暑期实习与提前批秋招）会让前一个窗口为空，
+    // 此刻两者都视为进行中；「当前阶段」徽章只标第一个
+    var nowFlags = {};
+    if (nowIdx >= 0) {
+      nodes.forEach(function (node, i) {
+        if (i <= nowIdx && node.start === nodes[nowIdx].start) nowFlags[i] = true;
+      });
+    }
+
+    var rows = nodes.map(function (node, i) {
+      var st = 'future';
+      if (nowIdx >= 0) st = i < nowIdx && !nowFlags[i] ? 'past' : (nowFlags[i] ? 'now' : 'future');
+      else st = i < nextIdx ? 'past' : (i === nextIdx ? 'next' : 'future');
+      var marks = node.type === 'forecast' ? badge('预测', 'b-mid') : '';
+      if (i === nowIdx) marks += badge('当前阶段', 'b-acc');
+      if (i === nextIdx && nowIdx < 0) marks += badge('下一站', 'b-acc');
+      return '<li class="spine-item ' + st + (node.milestone ? ' mile' : '') + '"><span class="spine-dot" aria-hidden="true"></span>' +
+        '<div class="spine-main"><div class="spine-line"><span class="spine-when">' + escapeHtml(node.when) + '</span><b>' +
+        escapeHtml(node.title) + '</b>' + marks + '</div><p class="spine-detail">' + escapeHtml(node.detail) + '</p></div></li>';
+    }).join('');
+
+    return '<section class="card spine-card"><div class="card-head"><strong>三年主路线</strong>' +
+      badge(currentPhase(now).phase.name, 'b-acc') + '</div><ol class="spine">' + rows + '</ol></section>';
+  }
+
+  // ── 12 周条：90 天计划的全景导航。当前周高亮，已勾周显示完成态，里程碑周星标 ──
+  function renderWeekStrip(now) {
+    var w = plan90Week(now);
+    var mile = { 4: 1, 8: 1, 12: 1 };
+    var groups = [1, 2, 3].map(function (ph) {
+      var chips = RESEARCH.plan90.filter(function (item) { return item.ph === ph; }).map(function (item) {
+        var num = parseInt(String(item.w).slice(1), 10);
+        var cls = 'ws-chip' + (num === w ? ' now' : '') + (state.checks.has('week-' + item.w) ? ' done' : '') +
+          (mile[num] ? ' mile' : '');
+        return '<button type="button" class="' + cls + '" data-anchor="week-item-' + escapeHtml(item.w) + '">' +
+          escapeHtml(item.w) + '</button>';
+      }).join('');
+      return '<div class="ws-group"><span class="ws-label">Phase ' + ph + '</span>' + chips + '</div>';
+    }).join('');
+    return '<div class="week-strip" aria-label="90 天计划 12 周导航">' + groups + '</div>';
+  }
+
+  // 阶梯当前步：阶段感知的同一套 PHASES 映射到四级阶梯（每年复核）。
+  // pre 是「下一站」语义（入学首月即将开始）；y2 提前半年亮出 STEP 2，
+  // 与 timeline 的「2027.10—11 接触 mentor」准备窗口一致。
+  function currentLadderId() {
+    var map = { pre: 'ladder-0', y1a: 'ladder-1', y1b: 'ladder-1', y2: 'ladder-2', sprint: 'ladder-3', intern: 'ladder-3' };
+    return map[currentPhase(new Date()).phase.id] || 'ladder-0';
+  }
+
+  // 顶栏当前位置 chip：元素缺失或桩环境静默跳过
+  var phaseChip = document.getElementById('phase-chip');
+  function updatePhaseChip() {
+    if (!phaseChip) return;
+    var now = new Date();
+    var w = plan90Week(now);
+    phaseChip.hidden = false;
+    phaseChip.textContent = '当前阶段 · ' + currentPhase(now).phase.name + (w >= 1 && w <= 12 ? ' · ' + RESEARCH.plan90[w - 1].w : '');
+  }
+
   function renderDashboard() {
     var now = new Date();
     var firstAngle = RESEARCH.angles[0];
     return '<div class="page">' + pageHead('dashboard', 'Decision cockpit') +
       callout('唯一主线', '<strong>后端工程 → Agent 应用 → Harness / 评测 / 可观测 → 可信 Agent 系统：假成功检测与证据化评测。</strong><br>论文负责建立方法深度，作品集负责证明系统能力，实习负责获得生产证据。', 'good hero-line') +
       renderNowCard(now) +
+      renderRoadmapSpine(now) +
       renderProgress() +
       '<div class="grid c4">' +
         stat('2026.09', '入学', '先核验制度与算力') +
@@ -353,11 +443,6 @@
         stat('2028.02', '暑期实习主投', '预测窗口，需提前复核', 'warn') +
         stat('2 个', '深度作品集', 'Atlas + AgentParliament', 'good') +
       '</div>' +
-      section(DATA.corrections.length + ' 条会改变计划的纠偏') +
-      '<div class="grid c3">' + DATA.corrections.map(function (item) {
-        return '<article class="card correction"><div class="wrong">原假设 · ' + escapeHtml(item.wrong) + '</div><h4>' + rich(item.right) +
-          '</h4><p>' + rich(item.why) + '</p><div class="impact"><b>行动影响</b> ' + escapeHtml(item.impact) + '</div>' + sourceLine(item.src, item.ref) + '</article>';
-      }).join('') + '</div>' +
       section('当前研究决策') +
       '<div class="hero-decision card pad-lg"><div><span class="badge b-acc">首篇建议</span><h3>' + escapeHtml(firstAngle.name) +
         '</h3><p class="mono-sm">' + escapeHtml(firstAngle.en) + '</p><p>' + escapeHtml(firstAngle.problem) + '</p></div>' +
@@ -365,13 +450,17 @@
           var names = { value: '问题价值', novelty: '新颖性', falsifiable: '可证伪', feasible: '可实施', resource: '资源匹配', career: '求职对齐' };
           return '<div class="score-item"><span>' + names[key] + '</span>' + stars(firstAngle.scores[key]) + '</div>';
         }).join('') + '</div></div>' +
+      section(DATA.corrections.length + ' 条会改变计划的纠偏') +
+      '<div class="grid c2">' + DATA.corrections.map(function (item) {
+        return '<article class="card correction"><div class="wrong">原假设 · ' + escapeHtml(item.wrong) + '</div><h4>' + rich(item.right) +
+          '</h4><p>' + rich(item.why) + '</p><div class="impact"><b>行动影响</b> ' + escapeHtml(item.impact) + '</div>' + sourceLine(item.src, item.ref) + '</article>';
+      }).join('') + '</div>' +
       '<div class="card"><strong>必须守住的边界</strong>' + list([
         '不把 GraphRAG 当简历主标签；用 Memory、Context、Evaluation 和 Knowledge Graph。',
         '不把 1,287 条快照说成百度全部 AI 岗位。',
         '不把预测招聘时间、二手实习政策或目标指标写成事实。',
         '不把“能运行”当作品集完成；必须报告成功率、P99、QPS 与单位成本。'
-      ]) + '</div>' +
-      section('三年阶段图') + details('展开查看 2026—2029 关键节点（远期信息，属历史规律外推）', renderCareerTimeline(JOBS.timeline.slice(0, 8)), false) + '</div>';
+      ]) + '</div></div>';
   }
 
   function renderBaseline() {
@@ -399,12 +488,12 @@
           '</div><div class="jm">' + badge(item.level, 'b-info') + '</div><p>' + rich(item.note) + '</p><div class="jq"><b>价值判断：</b>' + rich(item.why) + '</div>' + sourceLine(item.src, item.ref) + '</article>';
       }).join('') + '</div>' +
       details('可关注实验室（' + DATA.partners.labs.length + ' 个 · 背景档案）', table(['平台', '层级', '与路线的接口'], DATA.partners.labs.map(function (r) { return r.map(function (c) { return text(c); }); })) +
-      '<p class="mono-sm">' + rich(DATA.partners.labNote) + '</p>', false) +
+      '<p class="mono-sm">' + rich(DATA.partners.labNote) + '</p>', false, '', true) +
       section('就业事实与不可用口径', 'employment') +
       details('落实率、雇主样本与薪资警告（背景数据）', '<div class="grid c2"><div>' + table(['口径', '比例', '时间'], DATA.employment.official.map(function (r) { return r.map(function (c) { return text(c); }); })) +
       '<div class="card"><strong>头部雇主样本</strong><p>' + escapeHtml(DATA.employment.employers) + '</p></div></div>' +
-      '<div>' + callout('薪资数据不可引用', DATA.employment.salaryWarning, 'bad') + '<div class="card"><strong>权威核验路径</strong><p>' + escapeHtml(DATA.employment.authoritative) + '</p>' + sourceLine(DATA.employment.src, DATA.employment.ref) + '</div></div></div>', false) +
-      details(DATA.wafNote.title, DATA.wafNote.body, false) + '</div>';
+      '<div>' + callout('薪资数据不可引用', DATA.employment.salaryWarning, 'bad') + '<div class="card"><strong>权威核验路径</strong><p>' + escapeHtml(DATA.employment.authoritative) + '</p>' + sourceLine(DATA.employment.src, DATA.employment.ref) + '</div></div></div>', false, '', true) +
+      details(DATA.wafNote.title, DATA.wafNote.body, false, '', true) + '</div>';
   }
 
   function renderResearch() {
@@ -423,19 +512,19 @@
       callout('建议排序', RESEARCH.angleAdvice, '') +
       details('已拒绝的方向（2026-08-28 存档，防止重新发明）', '<div class="grid c2">' + arr(RESEARCH.rejected).map(function (r) {
         return '<div class="card"><strong>' + escapeHtml(r.name) + '</strong><p>' + escapeHtml(r.reason) + '</p></div>';
-      }).join('') + '</div>', false) +
+      }).join('') + '</div>', false, '', true) +
       section('双轨验证与指标体系') + callout('为什么要双轨', RESEARCH.dualTrack, 'good') +
       details('指标体系（' + RESEARCH.metrics.length + ' 组 · 实验设计时查阅）', '<div class="grid c3">' + RESEARCH.metrics.map(function (metric) {
         return '<div class="card"><strong>' + escapeHtml(metric.g) + '</strong>' + list(metric.items) + '</div>';
-      }).join('') + '</div>', false) +
+      }).join('') + '</div>', false, '', true) +
       section('已经饱和的方向') + details(RESEARCH.saturated.length + ' 条饱和判断（防止重新发明）', table(['方向', '证据', '判断'], RESEARCH.saturated.map(function (item) {
         return [text(item.t), text(item.e), '<strong>' + text(item.j) + '</strong>'];
-      })), false) +
+      })), false, '', true) +
       section('竞争团队雷达') + details(RESEARCH.rivals.length + ' 个团队 × 跟踪频率', '<div class="grid c2">' + RESEARCH.rivals.map(function (item) {
         var cls = item.level === 'danger' ? 'bad' : item.level === 'warn' ? 'warn' : '';
         return '<div class="card rival ' + cls + '"><div class="card-head"><strong>' + escapeHtml(item.n) + '</strong>' + badge(item.f, cls === 'bad' ? 'b-low' : cls === 'warn' ? 'b-mid' : 'b-dim') +
           '</div><p>' + escapeHtml(item.w) + '</p><div class="mono-sm">' + escapeHtml(item.note) + '</div></div>';
-      }).join('') + '</div>' + callout('竞争判断', RESEARCH.rivalJudgement, 'warn'), false) +
+      }).join('') + '</div>' + callout('竞争判断', RESEARCH.rivalJudgement, 'warn'), false, '', true) +
       section('给导师的翻译层') + table(['Agent 语言', '图学习语言'], RESEARCH.translate.map(function (r) { return [text(r[0]), rich(r[1])]; })) +
       '<blockquote><p>' + escapeHtml(RESEARCH.pitch) + '</p><cite>组会开场建议</cite></blockquote>' +
       details('见导师材料（组会汇报骨架 · 第一封邮件存档）',
@@ -445,7 +534,7 @@
         '<h4 class="sub">' + escapeHtml(RESEARCH.firstMail.title) + '</h4>' +
         '<p class="muted">' + escapeHtml(RESEARCH.firstMail.dont) + '</p>' +
         '<pre class="mail-body">' + escapeHtml(RESEARCH.firstMail.body) + '</pre>' +
-        '<p class="muted">' + escapeHtml(RESEARCH.firstMail.effect) + '</p>', false) + '</div>';
+        '<p class="muted">' + escapeHtml(RESEARCH.firstMail.effect) + '</p>', false, '', true) + '</div>';
   }
 
   function allPapers() {
@@ -485,6 +574,7 @@
     var tracks = reading.tracks;
     var track = tracks[state.track] ? state.track : 'A';
     var t = tracks[track];
+    var now = new Date();
 
     var commonChecks = common.items.map(function (p, i) {
       return { id: 'paper-common-' + (p.ax || i), text: p.t, meta: (p.ax || '') + ' · 公共必读' };
@@ -506,7 +596,7 @@
       renderTrackCard(track, t) +
 
       section('90 天启动路线（公共 4 周 + 默认沿方向 A）', 'plan90') +
-      callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn') + renderPlan90() +
+      callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn') + renderWeekStrip(now) + renderPlan90(now) +
 
       section('卡住时怎么退', 'fallback') + '<div class="grid c2">' + RESEARCH.fallback.map(function (item) {
         return '<div class="card"><strong>' + escapeHtml(item.s) + '</strong><p>' + escapeHtml(item.a) + '</p></div>';
@@ -532,20 +622,22 @@
       '</article>';
   }
 
-  function renderPlan90() {
-    // 12 周按 Phase 分三组折叠，默认展开 Phase 1——整条时间线一次性铺开是本页最长的墙
+  function renderPlan90(now) {
+    // 12 周按 Phase 分三组折叠；默认展开当前周所在 Phase（入学前 → Phase 1，过执行期 → Phase 3）
     var phaseNames = { 1: '公共必读、Atlas 复现与综述初稿', 2: '标注协议、基准设计与检测器 v1', 3: '消融、复现包与投稿材料' };
+    var w = plan90Week(now);
+    var activePh = (w >= 1 && w <= 12) ? RESEARCH.plan90[w - 1].ph : (w > 12 ? 3 : 1);
     return [1, 2, 3].map(function (ph) {
       var weeks = RESEARCH.plan90.filter(function (item) { return item.ph === ph; });
       if (!weeks.length) return '';
       return details('Phase ' + ph + ' · ' + weeks[0].w + '—' + weeks[weeks.length - 1].w + ' · ' + phaseNames[ph],
-        '<div class="timeline">' + weeks.map(plan90Item).join('') + '</div>', ph === 1);
+        '<div class="timeline">' + weeks.map(plan90Item).join('') + '</div>', ph === activePh);
     }).join('');
   }
 
   function plan90Item(item) {
     var checkId = 'week-' + item.w;
-    return '<article class="tl-item' + (item.mile ? ' milestone' : '') + '"><div class="tl-when">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div>' +
+    return '<article class="tl-item' + (item.mile ? ' milestone' : '') + '" id="week-item-' + escapeHtml(item.w) + '"><div class="tl-when">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div>' +
       '<div class="tl-what">' + escapeHtml(item.out) + '</div><div class="tl-desc"><b>读：</b>' + escapeHtml(item.read) + '<br><b>做：</b>' + escapeHtml(item.run) +
       '<br><b>卡住：</b>' + escapeHtml(item.stuck) + '</div>' + (item.mile ? '<div class="tl-check"><b>里程碑：</b>' + escapeHtml(item.mile) + '</div>' : '') +
       '<label class="mini-check"><input type="checkbox" data-check-id="' + checkId + '"' + (state.checks.has(checkId) ? ' checked' : '') + '> 本周验收完成</label></article>';
@@ -590,7 +682,11 @@
       section('地域约束：一切筛选的前置条件', 'city-policy') +
       renderCityPolicy() +
       section('实习四级阶梯', 'ladder') + '<div class="timeline">' + JOBS.internshipLadder.map(function (step) {
-        return '<article class="tl-item milestone"><div class="tl-when">STEP ' + escapeHtml(step.step) + ' · ' + escapeHtml(step.when) + '</div><div class="tl-what">' + escapeHtml(step.title) +
+        var isCurrent = step.id === currentLadderId();
+        var mark = isCurrent
+          ? (currentPhase(new Date()).phase.id === 'pre' ? badge('下一站', 'b-acc') : badge('当前阶段', 'b-acc'))
+          : '';
+        return '<article class="tl-item milestone' + (isCurrent ? ' current' : '') + '"><div class="tl-when">STEP ' + escapeHtml(step.step) + ' · ' + escapeHtml(step.when) + mark + '</div><div class="tl-what">' + escapeHtml(step.title) +
           '</div><div class="tl-desc">' + list(step.actions) + '</div><div class="tl-check"><b>验收：</b>' + escapeHtml(step.acceptance) + '</div></article>';
       }).join('') + '</div>' +
       section('岗位族：主投什么、不主投什么') + '<div class="grid c3">' + JOBS.roleFamilies.map(function (role) {
@@ -612,13 +708,13 @@
       '<div class="grid c4">' + JOBS.stats.recruitment.map(function (item) {
         return stat(item.count, item.label, item.pct + '% of snapshot', item.id === 'dailyIntern' ? 'good' : '');
       }).join('') + stat(techPost ? techPost.count : '—', '技术岗', (techPost ? techPost.pct + '%' : '') + '，不是应届可投数', 'warn') + '</div>' +
-      details('城市记录分布与可投池测算', renderCityDistribution(), false, badge('按记录计数', 'b-dim')) +
+      details('城市记录分布与可投池测算', renderCityDistribution(), false, badge('按记录计数', 'b-dim'), true) +
       details('抽样与字段质量', '<div class="grid c2"><div>' + table(['岗位类型', '记录数', '占比'], JOBS.stats.postType.map(function (i) { return [text(i.label), text(i.count), text(i.pct + '%')]; })) +
-        '</div><div>' + table(['字段质量', '数值', '解释'], JOBS.stats.quality.map(function (i) { return [text(i.label), text(i.value), text(i.note)]; })) + '</div></div>', false) +
+        '</div><div>' + table(['字段质量', '数值', '解释'], JOBS.stats.quality.map(function (i) { return [text(i.label), text(i.value), text(i.note)]; })) + '</div></div>', false, '', true) +
       section('不要跨过的数据边界') + details('数据口径风险与生涯决策风险', '<div class="grid c2">' + Object.keys(JOBS.risks).map(function (group) {
         var title = group === 'data' ? '数据口径风险' : '生涯决策风险';
         return '<div class="card"><div class="card-head"><strong>' + title + '</strong>' + claimBadge('inference') + '</div>' + list(JOBS.risks[group]) + '</div>';
-      }).join('') + '</div>', false) + '</div>';
+      }).join('') + '</div>', false, '', true) + '</div>';
   }
 
   // 地域策略：按阶段分组 + 偏好序号，让「先城市后岗位」在视觉上就是第一层。
@@ -658,7 +754,7 @@
           badge(region.role, isTransit ? 'b-mid' : 'b-info') + '</div>' +
           (region.sample ? '<div class="mono-sm">' + escapeHtml(region.sample) + '</div>' : '') +
           '<p>' + safeRich(region.strategy) + '</p><div class="region-risk"><b>风险</b> ' + safeRich(region.risk) + '</div></div>';
-      }).join('') + '</div>', false);
+      }).join('') + '</div>', false, '', true);
   }
 
   // 城市分布：按 fit 分组呈现。北京作为「中转」单独一组降饱和显示，
@@ -727,10 +823,10 @@
       table(['技能', '领域', '百度 ' + SKILLS.meta.baidu.denominator, '腾讯 ' + SKILLS.meta.tencent.denominator, '优先级', '判断'], signals.map(function (skill) {
         return ['<strong>' + escapeHtml(skill.name) + '</strong>', text(domainLabels[skill.domain] || skill.domain), skill.baidu == null ? '—' : '<div class="bar-cell"><div class="bar"><i style="width:' + skill.baidu + '%"></i></div><span>' + skill.baidu + '%</span></div>',
           skill.tencent == null ? '—' : '<div class="bar-cell"><div class="bar"><i class="cold" style="width:' + skill.tencent + '%"></i></div><span>' + skill.tencent + '%</span></div>', badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim'), text(skill.judgement)];
-      })) + callout('如何读这些数字', '关键词存在率不等于岗位硬要求率，也不能证明候选人供给。<b>GraphRAG 零命中只说明不适合作为 ATS 主标签，不代表图记忆技术无价值。</b>', ''), false) +
+      })) + callout('如何读这些数字', '关键词存在率不等于岗位硬要求率，也不能证明候选人供给。<b>GraphRAG 零命中只说明不适合作为 ATS 主标签，不代表图记忆技术无价值。</b>', ''), false, '', true) +
       details('面试四条能力线（2028 准备框架）', '<div class="grid c2">' + SKILLS.interviewTracks.map(function (track) {
         return '<div class="card"><div class="card-head"><strong>' + escapeHtml(track.name) + '</strong>' + badge(track.target, 'b-info') + '</div>' + list(track.items) + '</div>';
-      }).join('') + '</div>', false) + '</div>';
+      }).join('') + '</div>', false, '', true) + '</div>';
   }
 
   // 学习参考渲染：kind=book/web/paper；local 指向 site/papers/ 的本地 PDF
@@ -837,6 +933,7 @@
       item.classList.toggle('active', active);
       if (active) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
+    updatePhaseChip();
     buildPageToc();
     bindPageEvents();
     window.scrollTo(0, offset);
@@ -923,7 +1020,12 @@
       link.addEventListener('click', function (event) {
         event.preventDefault();
         var target = document.getElementById(link.getAttribute('data-anchor'));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (target) {
+          // 目标在折叠块内时先展开（周条 chip → 对应周条目）
+          var box = target.closest ? target.closest('details') : null;
+          if (box) box.open = true;
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     });
   }

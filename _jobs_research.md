@@ -1280,7 +1280,3 @@ GraphRAG 在 1912 条 JD 中出现 **0 次**；但"记忆/Memory"在腾讯技术
 百度技术岗 54.9% 只要"本科及以上"，硕士要求仅 13.4%。牛客上有一位 26届双非本+末九硕、配置是"一段大厂+一段小厂实习"，拿下 4 个 SSP。你和他的差距只在实习。**所以 2028 年 2-3 月的暑期实习投递是整份规划的唯一胜负手，其余所有安排都应该为它服务。**
 
 **一个必须纠正的预期**：AI 应用岗 = 后端全套要求（手撕 + OS/网络/数据库八股）**+** 大模型/Agent 额外一层，不是替代。2026 年 7 月的字节 Agent 岗面经里，两次挂人都是因为手撕没写出来，同时还照样问幻读和 Spring IOC。**不要指望 AI 岗能躲开算法题。**
-agentId: agent_edd43b31-d66f-4653-80d6-a3d6118b4a74 (use SendMessage with to: 'agent_edd43b31-d66f-4653-80d6-a3d6118b4a74' to continue this agent)
-<usage>subagent_tokens: 7369797
-tool_uses: 64
-duration_ms: 1930334</usage>

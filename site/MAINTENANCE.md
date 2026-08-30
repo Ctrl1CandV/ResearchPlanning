@@ -225,7 +225,9 @@ reading: {
 `app.js` 是一个 IIFE，结构为「工具函数 → 组件 → 十个页面 → 状态与事件」。
 
 - **路由**：`location.hash`，未知 hash 回退到 `dashboard`。
-- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / pageSummary（要点块，读各模块 summary 字段）/ timeline / checkList / filterGroup / claimBadge / evidenceBadge / paperItem（含 intro 与本地 PDF 链接）/ renderTrackCard（方向卡 + stage-flow 阶段可视化）/ skillRefs（学习参考，book/web/paper 三类，local 指向本地 PDF）/ renderNowCard + currentPhase + phaseActions（仪表盘阶段感知，里程碑常量在渲染器顶部，每年复核）/ renderProgress（三条进度线）`。
+- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / pageSummary（要点块，读各模块 summary 字段）/ timeline / checkList / filterGroup / claimBadge / evidenceBadge / paperItem（含 intro 与本地 PDF 链接）/ renderTrackCard（方向卡 + stage-flow 阶段可视化）/ skillRefs（学习参考，book/web/paper 三类，local 指向本地 PDF）/ renderNowCard + currentPhase + phaseActions（仪表盘阶段感知，里程碑常量在渲染器顶部，每年复核）/ renderProgress（三条进度线）/ renderRoadmapSpine（三年主路线图：JOBS.timeline 全量 + GRADUATE_ISO 毕业常量，节点状态按日期派生，毕业节点常量每年复核）/ renderWeekStrip（90 天 12 周条：本周高亮、勾选完成态、里程碑星标，chip 经 data-anchor 展开并滚动到周条目）`。
+- **details() 第 5 参 `ref`（档案层降噪）**：`details(title, body, open, right, ref=true)` 渲染 `acc ref`，summary 字号/颜色弱化一档。**只加在档案类折叠块**（实验室/就业档案/口径/饱和/竞争/信号矩阵/见导师材料等），执行层折叠（90 天 Phase、公共必读进度、方法草案）不加——路线突出原则见 ROUTE-REFACTOR-PLAN.md。
+- **顶栏当前位置 chip**：`index.html` 的 `#phase-chip` 在每次渲染时由 `updatePhaseChip()` 填充（当前阶段名 + 开学后的周次）；元素缺失（如桩环境）静默跳过。原「进度保存在本机」文案保留在侧栏页脚。
 - **信息分层约定（2026-08-29 起）**：页面内容分「要点层（pageSummary，永远可见）/ 执行层（默认展开）/ 证据层（默认折叠进 `details`）」。改内容时保持这个分层：情报类（饱和、竞争、口径、信号矩阵、就业档案）默认折叠，执行类（清单、路线、阶梯、学习路线）默认展开。折叠标题要自带信息量（名称 + 条数）。
 - **jobs 页 section 顺序**：地域约束 → 实习阶梯 → 岗位族 → 岗位样本 → 时间线 → 口径(折叠) → 数据边界(折叠)。阶梯在样本之前是刻意的（研一核心是阶梯不是目标地图），调整顺序前先想清楚。
 - **verify 页渲染按 impact 排序**（critical → high → medium），数据顺序不动。
@@ -362,8 +364,8 @@ console.log("孤儿:",files.filter(f=>!flagged.has(f)))'
 ```
 
 4) 浏览器冒烟：双击 `site/index.html`，逐一点开十个导航项，确认 F12 控制台无红色报错、页面无 `undefined`。
-   也可以先跑无头版快速回归（十个路由全部 PASS 即基本可用）：`node _render_smoke.js`；
-   阶段感知回归（三个模拟日期的阶段名/周次/行动切换）：`node _phase_smoke.js`。
+   也可以先跑无头版快速回归（十个路由全部 PASS 即基本可用）：`node scripts/render-smoke.js`；
+   阶段感知回归（三个模拟日期的阶段名/周次/行动切换）：`node scripts/phase-smoke.js`。
    阶段里程碑常量在 `app.js` 的 `PHASES`（依据 timeline 与阶梯节奏，**每年复核**）。
 5) 交互：阅读页切 6 个方向 chip 看方向卡是否完整渲染（阶段路线/论文/资产/提示）；技能页任选一条路线看学习参考链接（本地 PDF 的要能打开）；岗位/技能的其余筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个关键词点结果跳转、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
 6) **地域顺序抽查**：打开 `#jobs`，确认页面第一屏是「地域约束」而不是百度快照；确认就业阶段顺序为 杭州 → 上海 → 深圳 → 广州 → 北京（中转）；确认北京卡片是琥珀色「中转可接受 · 1—2 年跳板」（不再是红色「不投递」），城市分布图里北京在「中转城市」分组。

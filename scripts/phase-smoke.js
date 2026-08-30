@@ -1,11 +1,11 @@
 /* 阶段感知冒烟：模拟三个日期渲染 dashboard，核对阶段名/周次/行动切换。
-   用途：node _phase_smoke.js —— 全部断言通过即通过。
+   用途：node scripts/phase-smoke.js —— 全部断言通过即通过。
    日期模拟：用可注入 iso 的 Date 子类替换 global.Date，再执行 app.js（每次整页重渲染）。 */
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');   // 已从仓库根移入 scripts/，回退一层定位 site/
 
 function makeEl() {
   return {

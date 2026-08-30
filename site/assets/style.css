@@ -1586,6 +1586,102 @@ body.light .city-rank-item:first-child .rank { color: #fff; }
 }
 .region-risk b { color: var(--mid); font-weight: 600; margin-right: 4px; }
 
+/* ─────────────── 路线层：三年主路线图 / 12 周条 / 阶梯当前步 ───────────────
+   L1 路线层（永远可见、有「当前位置」标记）与 L3 档案层（acc ref 降噪）的样式。
+   只复用现有令牌与组件语汇，不新增颜色。 */
+
+.spine-card { padding: 20px 22px 18px; }
+.spine { list-style: none; margin: 6px 0 0; padding: 0; position: relative; }
+.spine::before {
+  content: "";
+  position: absolute; left: 8px; top: 12px; bottom: 12px;
+  width: 1.5px;
+  background: linear-gradient(180deg, var(--border-strong), var(--border) 90%);
+}
+.spine-item { position: relative; display: flex; gap: 14px; padding-bottom: 17px; }
+.spine-item:last-child { padding-bottom: 0; }
+.spine-dot {
+  flex: 0 0 17px; width: 17px; height: 17px; margin-top: 4px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--border-strong);
+  position: relative; z-index: 1;
+}
+.spine-item.mile .spine-dot { border-color: var(--accent-deep); }
+.spine-item.past { opacity: .68; }
+.spine-item.past .spine-dot { background: var(--border); border-color: var(--border); }
+.spine-item.past .spine-line b { color: var(--text-soft); font-weight: 560; }
+.spine-item.now .spine-dot,
+.spine-item.next .spine-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.spine-item.now .spine-line b,
+.spine-item.next .spine-line b { color: var(--accent); }
+.spine-main { flex: 1; min-width: 0; }
+.spine-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; }
+.spine-when { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); letter-spacing: .5px; }
+.spine-line b { font-size: 14px; font-weight: 620; }
+.spine-detail { margin: 2px 0 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+/* 12 周条：90 天计划的全景导航（当前周高亮 / 已勾周完成态 / 里程碑周星标） */
+.week-strip { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.ws-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.ws-label {
+  flex: 0 0 64px;
+  font: 10.5px var(--mono);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.ws-chip {
+  width: 46px; padding: 4px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-soft);
+  font: 600 11.5px var(--mono);
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+}
+.ws-chip:hover { border-color: var(--accent-deep); color: var(--text); }
+.ws-chip.mile::after {
+  content: "★";
+  position: absolute; top: -8px; right: -3px;
+  font-size: 9px; color: var(--mid);
+}
+.ws-chip.done {
+  background: var(--accent-glow);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.ws-chip.now {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+body.light .ws-chip.now { color: #fff; }
+
+/* 阶梯当前步：与 spine「当前阶段」同一语汇（实心点 + 强调标题） */
+.tl-item.current::before {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 5px var(--accent-glow);
+}
+.tl-item.current .tl-what { color: var(--accent); }
+
+/* 档案层折叠块降噪：仅显式标记 .ref 的折叠生效（执行层折叠保持原样） */
+details.acc.ref > summary {
+  padding: 11px 18px;
+  font-size: 12.5px;
+  font-weight: 560;
+  color: var(--text-dim);
+}
+details.acc.ref > summary::before { border-left-color: var(--text-faint); }
+
 /* ─────────────── 响应式 ─────────────── */
 
 @media (max-width: 900px) {

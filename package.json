@@ -1,0 +1,20 @@
+{
+  "name": "grad-decision-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "研究生三年发展路径 · 决策工作台。站点本身零依赖；这里的依赖只用于本地验证，不进浏览器。",
+  "scripts": {
+    "lint:css": "stylelint \"site/assets/*.css\"",
+    "lint:js": "node scripts/check-syntax.js",
+    "contrast": "node scripts/contrast.js",
+    "recompute": "node scripts/recompute.js",
+    "verify": "npm run lint:js && npm run lint:css && npm run contrast && npm run recompute"
+  },
+  "devDependencies": {
+    "stylelint": "16.14.1",
+    "stylelint-config-standard": "37.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

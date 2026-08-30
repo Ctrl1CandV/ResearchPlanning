@@ -1,5 +1,5 @@
 /* 无头渲染冒烟：加载 6 个数据文件 + app.js，逐个路由执行渲染。
-   用途：node _render_smoke.js —— 全部路由无异常、无 "undefined" 泄漏即通过。
+   用途：node scripts/render-smoke.js —— 全部路由无异常、无 "undefined" 泄漏即通过。
    实现说明：用间接 eval 在真实全局作用域执行（浏览器中数据与渲染器都是全局脚本），
    因此裸 DATA/RESEARCH/window/location 都能像在浏览器里一样解析。
    （真实浏览器交互仍按 MAINTENANCE.md 第 8 节手动冒烟） */
@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');   // 已从仓库根移入 scripts/，回退一层定位 site/
 const ROUTES = ['dashboard', 'baseline', 'research', 'reading', 'tools', 'jobs', 'skills', 'portfolio', 'career', 'verify'];
 
 function makeEl() {
