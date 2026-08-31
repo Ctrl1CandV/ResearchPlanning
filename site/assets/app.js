@@ -53,6 +53,9 @@
 
   // 页内目录的滚动监听器；每次重渲染前断开，避免逐次累积
   var tocObserver = null;
+  // 跨路由锚点：data-anchor 目标不在当前页时（如 L2 周chip → L1 周条目、技能步骤 → 论文锚点），
+  // 先记下锚点再切 hash，render() 末尾滚动到位并展开所在 details
+  var pendingAnchor = null;
 
   var routeMeta = {
     dashboard: ['总览仪表盘', '把研究、工程与求职压成一条可执行主线。'],
@@ -551,75 +554,323 @@
     return result;
   }
 
-  // 方向卡的短名（chip 按钮用），缺失时回退到编号
+  // 方向短名（目录卡 / L2 面包屑用），缺失时回退到编号
   var trackShort = { A: '假成功检测', B: '交叉审查边界', C: '记忆评测科学', D: '图结构记忆', E: '代码评测审计', F: '记忆压缩帕累托' };
+  var refKindIcons = { book: '📕', web: '🌐', paper: '📄' };
 
-  function paperItem(paper) {
-    var id = paper.ax || paper.y || 'paper';
-    var pdfLink = (paper.pdf && paper.ax)
-      ? '<a class="pdf-link" href="papers/' + encodeURI(paper.ax) + '.pdf" target="_blank" rel="noreferrer" title="打开本地 PDF">📄 PDF</a>'
-      : '';
-    return '<article class="paper' + (paper.key ? ' must' : '') + '"><div class="pid">' +
-      (paper.ax ? '<a href="https://arxiv.org/abs/' + encodeURI(paper.ax) + '" target="_blank" rel="noreferrer">' + escapeHtml(paper.ax) + '</a>' : text(id)) +
-      '</div><div class="pb"><div class="pt">' + escapeHtml(paper.t) + pdfLink + '</div><div class="pv">' + text(paper.v) + ' · ' + text(paper.y) +
-      (paper.c == null ? '' : ' · cited ' + escapeHtml(paper.c)) + '</div>' +
-      (paper.intro ? '<div class="p-intro">' + escapeHtml(paper.intro) + '</div>' : '') +
-      '<div class="pw">' + escapeHtml(paper.why) + '</div>' +
-      '<div class="tag-row">' + (paper.key ? badge('必读', 'b-acc') : '') + (paper.warn ? badge('撞方向', 'b-low') : '') + (paper.cat ? badge(paper.cat, 'b-info') : '') + '</div></div></article>';
+  // ── 学习层两级 IA 的硬映射（LEARNING-IA-DESIGN.md §7）。
+  //    方向→技能与技能→方向是有意的单向导航（「需要练什么」 vs 「论文主场」），不要为了对称互相补边。 ──
+  var READING_L2 = { common: 1, A: 1, B: 1, C: 1, D: 1, E: 1, F: 1 };
+  var READING_SKILL_MAP = {
+    common: ['skill-memory', 'skill-rag'],
+    A: ['skill-eval', 'skill-agent-patterns'],
+    B: ['skill-eval', 'skill-agent-patterns'],
+    C: ['skill-memory', 'skill-eval'],
+    D: ['skill-memory', 'skill-graphdb', 'skill-rag'],
+    E: ['skill-eval', 'skill-algo'],
+    F: ['skill-memory', 'skill-graphdb']
+  };
+  var SKILL_TRACK_MAP = {
+    'skill-eval': ['A', 'E'],
+    'skill-memory': ['common', 'C', 'D', 'F'],
+    'skill-rag': ['common', 'D'],
+    'skill-protocols': ['A'],
+    'skill-agent-patterns': ['A', 'B'],
+    'skill-graphdb': ['D', 'F']
+  };
+  // 技能→信号只锁定「选哪一条」；百分比渲染时从 signals[] 读取，不硬抄设计稿里的示意数字
+  var SKILL_SIGNAL_MAP = {
+    'skill-algo': null, 'skill-cs': null, 'skill-eval': 'eval', 'skill-memory': 'memory',
+    'skill-system-design': 'distributed', 'skill-go': 'go', 'skill-rag': 'signal-rag',
+    'skill-protocols': 'function-calling', 'skill-agent-patterns': 'multi-agent',
+    'skill-model-basics': null, 'skill-k8s': 'k8s', 'skill-graphdb': 'graphdb',
+    'skill-framework-judgement': 'langchain'
+  };
+  var SKILL_SIGNAL_FALLBACK = {
+    'skill-algo': '面试硬门槛，不来自 JD 词频。',
+    'skill-cs': '面试硬门槛，不来自 JD 词频。',
+    'skill-model-basics': 'P1 解释水平，不来自单一 JD 词频。'
+  };
+  var SKILL_INTERVIEW_MAP = {
+    'skill-algo': 'track-code', 'skill-cs': 'track-foundation', 'skill-eval': 'track-agent',
+    'skill-memory': 'track-agent', 'skill-system-design': 'track-design', 'skill-go': 'track-code',
+    'skill-rag': 'track-agent', 'skill-protocols': 'track-agent', 'skill-agent-patterns': 'track-agent',
+    'skill-model-basics': 'track-agent', 'skill-k8s': 'track-design', 'skill-graphdb': null,
+    'skill-framework-judgement': 'track-agent'
+  };
+
+  function skillById(sid) {
+    var found = null;
+    SKILLS.roadmap.forEach(function (s) { if (s.id === sid) found = s; });
+    return found;
+  }
+
+  // ax → 所属 L2（一篇只归一处：common 或某一个方向）。出现重复 ax 说明数据违例，先到者生效
+  var paperHomeCache = null;
+  function paperHome() {
+    if (paperHomeCache) return paperHomeCache;
+    var map = {};
+    arr(RESEARCH.reading.common.items).forEach(function (p, i) {
+      if (p.ax && !(p.ax in map)) map[p.ax] = { track: 'common', n: p.n || (i + 1) };
+    });
+    Object.keys(RESEARCH.reading.tracks).forEach(function (tid) {
+      arr(RESEARCH.reading.tracks[tid].papers).forEach(function (p, i) {
+        if (p.ax && !(p.ax in map)) map[p.ax] = { track: tid, n: i + 1 };
+      });
+    });
+    paperHomeCache = map;
+    return map;
+  }
+
+  // 自由文本里的 arXiv id 自动变成指向所属 L2 的链接（锚点 paper-<ax> 由 render() 跨路由滚动）
+  function linkAx(value) {
+    var map = paperHome();
+    return escapeHtml(value).replace(/(\d{4}\.\d{4,5})/g, function (m) {
+      var home = map[m];
+      return home ? '<a class="ax-link" href="#reading/' + home.track + '" data-anchor="paper-' + m + '">' + m + '</a>' : m;
+    });
+  }
+
+  function trackHours(list) {
+    return arr(list).reduce(function (sum, p) {
+      var h = parseInt(String(p.h || ''), 10);
+      return sum + (isNaN(h) ? 0 : h);
+    }, 0);
+  }
+
+  // L2 页头：复用 page-head 语汇，eyebrow-no 沿用父级序号，顶部给回父级目录的面包屑
+  function l2Head(parentRoute, eyebrowText, title, lede, crumbHref, crumbLabel) {
+    var no = ('0' + Math.max(0, routeOrder.indexOf(parentRoute))).slice(-2);
+    return '<nav class="crumb"><a href="' + crumbHref + '">' + escapeHtml(crumbLabel) + '</a><span class="crumb-here">/ ' +
+      escapeHtml(eyebrowText) + '</span></nav>' +
+      '<header class="page-head"><div class="eyebrow"><span class="eyebrow-no">' + no + '</span>' + escapeHtml(eyebrowText) +
+      '</div><h2>' + escapeHtml(title) + '</h2><p class="lede">' + escapeHtml(lede) + '</p></header>';
+  }
+
+  // L2 论文行：默认一行（序号/勾选/标题/PDF/工时/why），intro·venue·引用·徽章折叠进详情
+  function l2PaperRows(papers, level, opts) {
+    opts = opts || {};
+    var cont = opts.cont || 0;
+    var checkable = opts.checkable !== false;
+    return arr(papers).map(function (p, i) {
+      var id = 'paper-' + level + '-' + (p.ax || i);
+      var pdfLink = (p.pdf && p.ax)
+        ? '<a class="pdf-link" href="papers/' + encodeURI(p.ax) + '.pdf" target="_blank" rel="noreferrer" title="打开本地 PDF">📄 PDF</a>'
+        : '';
+      return '<article class="lpaper" id="paper-' + escapeHtml(p.ax || 'x' + i) + '"><div class="lp-row">' +
+        '<span class="lp-no">' + (cont + i + 1) + '</span>' +
+        (checkable ? '<label class="chk lp-check"><input type="checkbox" data-check-id="' + escapeHtml(id) + '"' +
+          (state.checks.has(id) ? ' checked' : '') + '><span class="box" aria-hidden="true"></span><span class="sr-only">已读</span></label>' : '') +
+        '<div class="lp-main"><div class="lp-title">' + escapeHtml(p.t) + pdfLink + '<span class="lp-h">' + escapeHtml(p.h || '') + '</span></div>' +
+        '<div class="lp-why">' + linkAx(p.why || '') + '</div></div></div>' +
+        '<details class="lp-more"><summary>详情 · 简介与出处</summary><div class="lp-more-body">' +
+        (p.intro ? '<div class="p-intro">' + escapeHtml(p.intro) + '</div>' : '') +
+        '<div class="pv">' + text(p.v) + ' · ' + text(p.y) +
+        (p.c == null ? '' : ' · cited ' + escapeHtml(p.c)) +
+        (p.ax ? ' · <a href="https://arxiv.org/abs/' + encodeURI(p.ax) + '" target="_blank" rel="noreferrer">' + escapeHtml(p.ax) + '</a>' : '') + '</div>' +
+        '<div class="lp-badges">' + (p.key ? badge('必读', 'b-acc') : '') + (p.warn ? badge('撞方向', 'b-low') : '') +
+        (String(p.y || '').indexOf('2026') === 0 ? badge('2026 预印本 · 引用前复核', 'b-mid') : '') + '</div>' +
+        '</div></details></article>';
+    }).join('');
+  }
+
+  function weekChips(from, to) {
+    var out = '';
+    for (var w = from; w <= to; w += 1) {
+      out += '<a class="ws-chip" href="#reading" data-anchor="week-item-W' + w + '">W' + w + '</a>';
+    }
+    return out;
+  }
+
+  function skillChips(ids) {
+    return arr(ids).map(function (sid) {
+      var s = skillById(sid);
+      return s ? '<a class="chip" href="#skills/' + escapeHtml(sid) + '">' + escapeHtml(s.name) + ' · ' + escapeHtml(s.priority) + '</a>' : '';
+    }).join('');
+  }
+
+  // 技能学习步骤：paper+local 自动链回所属阅读 L2（不复制论文条目）；纸书无 URL 写明站点外
+  function stepItem(r, no, omitNo) {
+    var kindIcon = refKindIcons[r.kind] || '•';
+    var kindName = r.kind === 'paper' ? '论文' : r.kind === 'book' ? '纸书' : '网页';
+    var body;
+    var home = r.local ? paperHome()[r.local] : null;
+    if (home) {
+      var homeLabel = home.track === 'common' ? '公共必读第 ' + home.n + ' 篇' : '方向 ' + home.track + ' · ' + (trackShort[home.track] || '');
+      body = '<span class="mono-sm">' + escapeHtml(homeLabel) + '</span> <a href="#reading/' + home.track +
+        '" data-anchor="paper-' + escapeHtml(r.local) + '">' + escapeHtml(r.label) + '</a>';
+    } else if (r.local) {
+      body = '<a href="papers/' + encodeURI(r.local) + '.pdf" target="_blank" rel="noreferrer">' + escapeHtml(r.label) + '</a> <span class="mono-sm">本地PDF</span>';
+    } else if (r.url && r.url.charAt(0) === '#') {
+      body = '<a href="' + escapeHtml(r.url) + '">' + escapeHtml(r.label) + '</a>';
+    } else if (r.url) {
+      body = '<a href="' + encodeURI(r.url) + '" target="_blank" rel="noreferrer">' + escapeHtml(r.label) + '</a>';
+    } else {
+      body = escapeHtml(r.label) + ' <span class="mono-sm">馆藏/自购，不在站点内</span>';
+    }
+    return '<li class="step-item">' + (omitNo ? '' : '<span class="s-no">' + no + '</span>') +
+      '<div class="step-body"><span class="step-kind">' + kindIcon + ' ' + kindName + '</span><div class="ref-item">' + body + '</div></div></li>';
+  }
+
+  // ── 阅读 L1：目录 + 90 天脊柱。论文全文墙与方向卡全文下沉到 L2（LEARNING-IA-DESIGN.md §4） ──
+  function commonStageFlow() {
+    // 三步分段从 common.note 的既有句子派生（前 4 / 中 5 / 后 4），不新造结论
+    var steps = [
+      { k: '第 1—4 篇 · 建立语言', v: 'RAG、Generative Agents、MemGPT、记忆综述' },
+      { k: '第 5—9 篇 · 记忆参照系', v: 'A-MEM、Zep、Mem0、GraphRAG、LightRAG——记忆系统的参照系与 baseline 常客' },
+      { k: '第 10—13 篇 · 评测与批判', v: 'LoCoMo、MAST、假成功刻画、HGB——评测与批判的方法论' }
+    ];
+    return '<div class="stage-flow">' + steps.map(function (s, i) {
+      return '<div class="stage"><span class="s-no">' + (i + 1) + '</span><div class="stage-body"><b>' + escapeHtml(s.k) + '</b><p>' + escapeHtml(s.v) + '</p></div></div>';
+    }).join('') + '</div>';
+  }
+
+  function renderCurrentWeekCard(now) {
+    var w = plan90Week(now);
+    if (w >= 1 && w <= 12) {
+      var item = RESEARCH.plan90[w - 1];
+      return '<section class="now-card"><div class="now-head"><div><div class="ps-head">本周</div>' +
+        '<div class="now-name">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div></div><div class="now-meta">' +
+        (item.mile ? badge('里程碑周', 'b-acc') : '') +
+        '<a class="ws-chip" href="#reading" data-anchor="week-item-' + escapeHtml(item.w) + '">周明细</a></div></div>' +
+        '<dl class="kv"><dt>读</dt><dd>' + linkAx(item.read) + '</dd>' +
+        '<dt>做</dt><dd>' + linkAx(item.run) + '</dd>' +
+        '<dt>产出</dt><dd>' + linkAx(item.out) + '</dd></dl></section>';
+    }
+    if (w === 0) {
+      return '<div class="callout"><span class="t">90 天计划未开始</span>开学后按周推进；入学前先读公共必读前 4 篇 → <a href="#reading/common">公共必读</a>。</div>';
+    }
+    return '<div class="callout warn"><span class="t">90 天执行期已过</span>按方向卡「阶段路线」与实习阶梯继续推进。</div>';
+  }
+
+  function renderCommonCatalog() {
+    var common = RESEARCH.reading.common;
+    var done = 0;
+    common.items.forEach(function (p, i) {
+      if (state.checks.has('paper-common-' + (p.ax || i))) done += 1;
+    });
+    var total = common.items.length;
+    var pdf = common.items.filter(function (p) { return p.pdf && p.ax; }).length;
+    return '<a class="card cat-card" href="#reading/common">' +
+      '<div class="card-head"><strong>' + escapeHtml(common.name) + '</strong>' + badge(total + ' 篇', 'b-acc') + '</div>' +
+      '<div class="cat-meta"><span>本地 PDF ' + pdf + '</span><span>合计约 ' + trackHours(common.items) + ' 小时</span><span>已勾 ' + done + ' / ' + total + '</span></div>' +
+      '<div class="progress-line"><div class="track"><i style="width:' + (total ? Math.round(done / total * 100) : 0) + '%"></i></div><span class="lbl">' + done + ' / ' + total + '</span></div>' +
+      '<p class="cat-pitch">前 4 篇建立语言，中间 5 篇是记忆系统的参照系与 baseline 常客，后 4 篇是评测与批判的方法论。</p>' +
+      '<span class="cat-go">进入公共必读路线 →</span></a>';
+  }
+
+  function renderTrackCatalog() {
+    var recFirst = !!(RESEARCH.angles[0] && RESEARCH.angles[0].star);
+    return Object.keys(RESEARCH.reading.tracks).map(function (tid) {
+      var t = RESEARCH.reading.tracks[tid];
+      var core = arr(t.papers).filter(function (p) { return p.tier !== 'extend'; });
+      var ext = arr(t.papers).filter(function (p) { return p.tier === 'extend'; });
+      var prereq = core.filter(function (p) { return p.tier === 'prereq'; }).length;
+      var main = core.length - prereq;
+      var pdf = core.filter(function (p) { return p.pdf && p.ax; }).length;
+      var pitch = String(t.pitch || '');
+      if (pitch.length > 80) pitch = pitch.slice(0, 80) + '…';
+      return '<a class="card cat-card' + (tid === 'A' && recFirst ? ' cat-rec' : '') + '" href="#reading/' + tid + '">' +
+        '<div class="card-head"><strong>方向 ' + tid + ' · ' + escapeHtml(trackShort[tid] || tid) + '</strong>' +
+        (tid === 'A' && recFirst ? badge('默认方向', 'b-acc') : '') + '</div>' +
+        '<div class="cat-meta">' +
+        (prereq ? '<span>前置 ' + prereq + ' + 主列表 ' + main + '</span>' : '<span>主路径 ' + core.length + '</span>') +
+        (ext.length ? '<span>延伸 ' + ext.length + '</span>' : '') + '<span>📄 ' + pdf + '</span></div>' +
+        '<p class="cat-pitch">' + escapeHtml(pitch) + '</p>' +
+        '<span class="cat-go">进入方向路线 →</span></a>';
+    }).join('');
   }
 
   function renderReading() {
-    var reading = RESEARCH.reading;
-    var common = reading.common;
-    var tracks = reading.tracks;
-    var track = tracks[state.track] ? state.track : 'A';
-    var t = tracks[track];
     var now = new Date();
-
-    var commonChecks = common.items.map(function (p, i) {
-      return { id: 'paper-common-' + (p.ax || i), text: p.t, meta: (p.ax || '') + ' · 公共必读' };
-    });
-    var pdfCount = allPapers().filter(function (p) { return p.pdf && p.ax; }).length;
-    var trackChips = filterGroup('方向', 'track', Object.keys(tracks).map(function (tid) {
-      return [tid, tid + ' · ' + (trackShort[tid] || tid)];
-    }), track);
-
+    var aPapers = RESEARCH.reading.tracks.A ? RESEARCH.reading.tracks.A.papers : [];
+    var aHours = trackHours(aPapers);
+    var totalHours = trackHours(RESEARCH.reading.common.items) + aHours;
+    var fallbackBody = '<div class="grid c2">' + RESEARCH.fallback.map(function (item) {
+      return '<div class="card"><strong>' + escapeHtml(item.s) + '</strong><p>' + escapeHtml(item.a) + '</p></div>';
+    }).join('') + '</div>';
     return '<div class="page">' + pageHead('reading', 'Common first, then your track') +
       pageSummary(RESEARCH.readingSummary) +
-      callout('本页怎么用', '<b>先公共、后私有。</b>公共必读（' + common.items.length + ' 篇）无论最终走哪个方向都要读；想清楚方向后，切换到对应方向卡，按「阶段路线」推进该方向的必读与资产。标 📄 的 <b>' + pdfCount + ' 篇</b>论文已下载到 <code>site/papers/</code>，点「📄 PDF」直接开始阅读，无需联网。', 'good') +
-
-      section('公共必读 · 无论走哪条线', 'common-reading') +
-      '<div class="card paper-list">' + common.items.map(paperItem).join('') + '</div>' +
-      section('公共必读进度') + details('勾选进度（' + common.items.length + ' 篇）', checkList('reading-common', '公共必读清单（' + common.items.length + ' 篇）', commonChecks, '勾选自动保存在本机；正式读书记录进 Zotero/Obsidian。'), false) +
-
-      section('方向路线：选一条进入', 'tracks') + '<div class="filters filter-stack">' + trackChips + '</div>' +
-      renderTrackCard(track, t) +
-
-      section('90 天启动路线（公共 4 周 + 默认沿方向 A）', 'plan90') +
-      callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn') + renderWeekStrip(now) + renderPlan90(now) +
-
-      section('卡住时怎么退', 'fallback') + '<div class="grid c2">' + RESEARCH.fallback.map(function (item) {
-        return '<div class="card"><strong>' + escapeHtml(item.s) + '</strong><p>' + escapeHtml(item.a) + '</p></div>';
-      }).join('') + '</div></div>';
+      callout('本页怎么用', '<b>先公共、后方向。</b>公共必读（' + RESEARCH.reading.common.items.length + ' 篇）无论走哪个方向都要读；方向 A—F 一次只进入一条，按「阶段路线」推进必读与资产。默认沿方向 A 启动，换轨时 W1—W4 公共层不动。<br><b>默认预算：</b>公共必读合计约 ' + trackHours(RESEARCH.reading.common.items) + ' 小时 + 方向 A 约 ' + aHours + ' 小时 ≈ <b>' + totalHours + ' 小时阅读 / 90 天</b>，再加 Atlas 实验已经顶满——不要把六条方向当成开学全部读完。', 'good') +
+      section('90 天脊柱：本周在哪', 'spine') + renderWeekStrip(now) + renderCurrentWeekCard(now) +
+      section('公共必读 · 无论走哪条线', 'common-entry') + renderCommonCatalog() +
+      section('方向路线 · 选一条进入', 'tracks') + '<div class="grid c2">' + renderTrackCatalog() + '</div>' +
+      callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn') +
+      details('卡住时怎么退（' + RESEARCH.fallback.length + ' 条降级方案 · 背景档案）', fallbackBody, false, '', true) +
+      section('12 周明细', 'plan90') + renderPlan90(now) +
+      '</div>';
   }
 
-  // 方向卡：定位 → 阶段路线（可视化）→ 方向必读 → 资产 → 提示
-  function renderTrackCard(tid, t) {
-    return '<article class="card track-card pad-lg">' +
-      '<div class="track-head"><span class="badge b-acc">方向 ' + escapeHtml(tid) + '</span><div>' +
-      '<h3>' + escapeHtml(String(t.name).replace(/^方向 [A-F] · /, '')) + '</h3>' +
-      '<p class="track-pitch">' + escapeHtml(t.pitch) + '</p></div></div>' +
-      '<div class="track-fit"><b>接口</b>' + escapeHtml(t.fit) + '</div>' +
-      '<h4 class="sub">阶段路线</h4><div class="stage-flow">' + arr(t.stages).map(function (s, i) {
+  // ── 阅读 L2：单方向学习路线，十块骨架顺序固定（LEARNING-IA-DESIGN.md §5） ──
+  function renderReadingL2(tid) {
+    var isCommon = tid === 'common';
+    var t = isCommon ? RESEARCH.reading.common : RESEARCH.reading.tracks[tid];
+    if (!t) return '';
+    if (!isCommon) { state.track = tid; storeSet(STORE.track, tid); }
+    // common 的论文在 items 字段，方向在 papers 字段（research.js 既有结构）
+    var papers = arr(isCommon ? t.items : t.papers);
+    var core = papers.filter(function (p) { return p.tier !== 'extend'; });
+    var ext = papers.filter(function (p) { return p.tier === 'extend'; });
+    var prereq = core.filter(function (p) { return p.tier === 'prereq'; });
+    var main = core.filter(function (p) { return p.tier !== 'prereq'; });
+    var level = isCommon ? 'common' : tid;
+    var title = isCommon ? t.name : String(t.name).replace(/^方向 [A-F] · /, '');
+    var lede = isCommon ? (t.note || '') : (t.pitch || '');
+
+    var html = '<div class="page">' +
+      l2Head('reading', isCommon ? '公共必读' : '方向 ' + tid + ' · ' + (trackShort[tid] || tid), title, lede, '#reading', '阅读与 90 天启动');
+
+    if (!isCommon) html += '<div class="track-fit"><b>接口</b>' + escapeHtml(t.fit || '') + '</div>';
+
+    html += section(isCommon ? '公共必读路线' : '阶段路线') +
+      (isCommon ? commonStageFlow() : '<div class="stage-flow">' + arr(t.stages).map(function (s, i) {
         return '<div class="stage"><span class="s-no">' + (i + 1) + '</span><div class="stage-body"><b>' + escapeHtml(s.k) + '</b><p>' + escapeHtml(s.v) + '</p></div></div>';
-      }).join('') + '</div>' +
-      '<h4 class="sub">方向必读（' + arr(t.papers).length + ' 篇）</h4><div class="card paper-list">' + arr(t.papers).map(paperItem).join('') + '</div>' +
-      '<div class="grid c2">' +
+      }).join('') + '</div>');
+
+    if (prereq.length) {
+      html += section('前置，不是主路径（选本方向才要求）') +
+        '<div class="card lp-list">' + l2PaperRows(prereq, level) + '</div>';
+    }
+
+    if (isCommon) {
+      var groups = [
+        { label: '建立语言 · 第 1—4 篇', from: 1, to: 4 },
+        { label: '记忆系统的参照系与 baseline 常客 · 第 5—9 篇', from: 5, to: 9 },
+        { label: '评测与批判的方法论 · 第 10—13 篇', from: 10, to: 13 }
+      ];
+      html += section('公共必读（' + core.length + ' 篇 · 分三段）');
+      groups.forEach(function (g) {
+        var rows = core.filter(function (p) { return (p.n || 0) >= g.from && (p.n || 0) <= g.to; });
+        html += '<h4 class="sub">' + escapeHtml(g.label) + '</h4><div class="card lp-list">' + l2PaperRows(rows, 'common', { cont: g.from - 1 }) + '</div>';
+      });
+      html += '<p class="mono-sm">精读方法（三遍读法、精读四问）归档在 grad-companion 插件的 RESEARCH-PLAYBOOK.md，本站不重复维护。</p>';
+    } else {
+      html += section('方向必读（主路径 ' + main.length + ' 篇）') +
+        '<div class="card lp-list">' + l2PaperRows(main, level) + '</div>';
+    }
+
+    if (!isCommon) {
+      html += section('实践与资产') + '<div class="grid c2">' +
         '<div class="card"><strong>复现资产</strong>' + list(arr(t.repos).map(function (r) { return r.r + ' —— ' + r.note; })) + '</div>' +
-        '<div class="card"><strong>数据集</strong>' + list(arr(t.datasets).map(function (d) { return d.n + ' —— ' + d.d; })) + '</div>' +
-      '</div>' +
-      callout('使用提示', escapeHtml(t.note), '') +
-      '</article>';
+        '<div class="card"><strong>数据集</strong>' + list(arr(t.datasets).map(function (d) { return d.n + ' —— ' + d.d; })) + '</div></div>';
+    }
+
+    html += section('与 90 天的接口');
+    if (isCommon) html += '<p class="muted">公共必读集中在 Phase 1（W1—W4）：</p><div class="ws-group"><span class="ws-label">Phase 1</span>' + weekChips(1, 4) + '</div>';
+    else if (tid === 'A') html += '<p class="muted">主路径展开在 Phase 2—3（W5—W12）：</p><div class="ws-group"><span class="ws-label">Phase 2—3</span>' + weekChips(5, 12) + '</div>';
+    else html += callout('换轨说明', rich(RESEARCH.plan90Switch), 'warn');
+
+    var skillIds = READING_SKILL_MAP[tid] || [];
+    if (skillIds.length) html += section('相关技能') + '<div class="filters">' + skillChips(skillIds) + '</div>';
+
+    if (ext.length) {
+      html += details('延伸阅读（' + ext.length + ' 篇 · 不进 90 天主路径）',
+        '<div class="card lp-list">' + l2PaperRows(ext, level, { checkable: false }) + '</div>', false, '', true);
+    }
+
+    if (!isCommon && t.note) html += callout('使用提示', escapeHtml(t.note), '');
+
+    return html + '</div>';
   }
 
   function renderPlan90(now) {
@@ -638,8 +889,8 @@
   function plan90Item(item) {
     var checkId = 'week-' + item.w;
     return '<article class="tl-item' + (item.mile ? ' milestone' : '') + '" id="week-item-' + escapeHtml(item.w) + '"><div class="tl-when">' + escapeHtml(item.w) + ' · Phase ' + escapeHtml(item.ph) + '</div>' +
-      '<div class="tl-what">' + escapeHtml(item.out) + '</div><div class="tl-desc"><b>读：</b>' + escapeHtml(item.read) + '<br><b>做：</b>' + escapeHtml(item.run) +
-      '<br><b>卡住：</b>' + escapeHtml(item.stuck) + '</div>' + (item.mile ? '<div class="tl-check"><b>里程碑：</b>' + escapeHtml(item.mile) + '</div>' : '') +
+      '<div class="tl-what">' + linkAx(item.out) + '</div><div class="tl-desc"><b>读：</b>' + linkAx(item.read) + '<br><b>做：</b>' + linkAx(item.run) +
+      '<br><b>卡住：</b>' + linkAx(item.stuck) + '</div>' + (item.mile ? '<div class="tl-check"><b>里程碑：</b>' + linkAx(item.mile) + '</div>' : '') +
       '<label class="mini-check"><input type="checkbox" data-check-id="' + checkId + '"' + (state.checks.has(checkId) ? ' checked' : '') + '> 本周验收完成</label></article>';
   }
 
@@ -799,25 +1050,31 @@
     }).join('') + '</div>';
   }
 
+  // ── 技能 L1：目录。学习参考与交付细节下沉到 L2（LEARNING-IA-DESIGN.md §6.1） ──
   function renderSkills() {
+    var priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
     var signals = SKILLS.signals.filter(function (skill) {
       return (state.skillPriority === 'all' || skill.priority === state.skillPriority) && (state.skillDomain === 'all' || skill.domain === state.skillDomain);
     });
-    var roadmap = SKILLS.roadmap.filter(function (skill) {
+    var roadmap = SKILLS.roadmap.slice().sort(function (a, b) {
+      return (priorityOrder[a.priority] != null ? priorityOrder[a.priority] : 9) - (priorityOrder[b.priority] != null ? priorityOrder[b.priority] : 9);
+    }).filter(function (skill) {
       return (state.skillPriority === 'all' || skill.priority === state.skillPriority) && (state.skillDomain === 'all' || skill.domain === state.skillDomain);
     });
     var domains = Array.from(new Set(SKILLS.roadmap.concat(SKILLS.signals).map(function (s) { return s.domain; })));
     return '<div class="page">' + pageHead('skills', 'Market signal → proof of skill') +
       pageSummary(SKILLS.summary) +
       callout('双口径不可合并', '<b>百度：</b>' + SKILLS.meta.baidu.denominator + ' 个技术岗，含职责与要求。<br><b>腾讯：</b>' + SKILLS.meta.tencent.denominator + ' 个技术岗，只有工作内容，命中率是下限。<br>' + escapeHtml(SKILLS.meta.warning), 'warn') +
+      callout('本页是目录', '每张卡是一条学习路线的入口，点进去才有学习步骤、论文衔接与面试接口；P0 置顶，先从 P0 里挑当前阶段的一条进入。', 'good') +
       '<div class="filters filter-stack">' + filterGroup('优先级', 'skillPriority', [['all', '全部'], ['P0', 'P0'], ['P1', 'P1'], ['P2', 'P2'], ['P3', 'P3']], state.skillPriority) +
       filterGroup('能力域', 'skillDomain', [['all', '全部']].concat(domains.map(function (d) { return [d, domainLabels[d] || d]; })), state.skillDomain) + '</div>' +
-      section('学习路线与可验证交付物') + '<div class="grid c2">' + roadmap.map(function (skill) {
-        return '<article class="card"><div class="card-head"><strong>' + escapeHtml(skill.name) + '</strong>' + badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim') +
-          '</div>' + kv([['目标水平', skill.target], ['截止阶段', skill.deadline], ['交付证据', skill.deliverable]]) +
-          skillRefs(skill.refs) +
+      section('学习路线目录（' + roadmap.length + ' 条）') + '<div class="grid c2">' + roadmap.map(function (skill) {
+        return '<div class="card cat-card" data-goto="skills/' + escapeHtml(skill.id) + '">' +
+          '<div class="card-head"><strong><a href="#skills/' + escapeHtml(skill.id) + '">' + escapeHtml(skill.name) + '</a></strong>' + badge(skill.priority, skill.priority === 'P0' ? 'b-high' : skill.priority === 'P1' ? 'b-acc' : 'b-dim') + '</div>' +
+          '<div class="cat-meta"><span>截止 ' + escapeHtml(skill.deadline) + '</span><span>' + escapeHtml(domainLabels[skill.domain] || skill.domain) + '</span></div>' +
+          '<p class="cat-pitch">' + escapeHtml(skill.target) + '</p>' +
           '<label class="mini-check"><input type="checkbox" data-check-id="' +
-          escapeHtml(skill.id) + '"' + (state.checks.has(skill.id) ? ' checked' : '') + '> 标记完成</label></article>';
+          escapeHtml(skill.id) + '"' + (state.checks.has(skill.id) ? ' checked' : '') + '> 标记完成</label></div>';
       }).join('') + '</div>' +
       details('市场信号矩阵（' + signals.length + ' / ' + SKILLS.signals.length + ' 项 · 调研证据）', '<div class="result-count">显示 ' + signals.length + ' / ' + SKILLS.signals.length + ' 项</div>' +
       table(['技能', '领域', '百度 ' + SKILLS.meta.baidu.denominator, '腾讯 ' + SKILLS.meta.tencent.denominator, '优先级', '判断'], signals.map(function (skill) {
@@ -829,18 +1086,49 @@
       }).join('') + '</div>', false, '', true) + '</div>';
   }
 
-  // 学习参考渲染：kind=book/web/paper；local 指向 site/papers/ 的本地 PDF
-  var refKindIcons = { book: '📕', web: '🌐', paper: '📄' };
-  function skillRefs(refs) {
-    if (!arr(refs).length) return '';
-    return '<h4 class="sub">学习参考（从这里开始）</h4><div class="ref-list">' + refs.map(function (r) {
-      var href = r.local ? 'papers/' + encodeURI(r.local) + '.pdf' : (r.url || '');
-      var body = href
-        ? '<a href="' + encodeURI(href) + '"' + (r.local ? ' target="_blank" rel="noreferrer"' : '') + '>' + escapeHtml(r.label) + '</a>'
-        : escapeHtml(r.label);
-      return '<div class="ref-item"><span aria-hidden="true">' + (refKindIcons[r.kind] || '•') + '</span> ' + body +
-        (r.local ? ' <span class="mono-sm">本地PDF</span>' : '') + '</div>';
-    }).join('') + '</div>';
+  // ── 技能 L2：单条学习路线，八块骨架（LEARNING-IA-DESIGN.md §6.2） ──
+  function renderSkillL2(sid) {
+    var s = skillById(sid);
+    if (!s) return '';
+    var sigId = SKILL_SIGNAL_MAP[sid] || null;
+    var signal = sigId ? SKILLS.signals.filter(function (x) { return x.id === sigId; })[0] : null;
+    var refs = arr(s.refs);
+    var mainRefs = refs.filter(function (r) { return r.tier !== 'extend'; });
+    var extRefs = refs.filter(function (r) { return r.tier === 'extend'; });
+    var interviewId = SKILL_INTERVIEW_MAP[sid] || null;
+    var track = interviewId ? SKILLS.interviewTracks.filter(function (x) { return x.id === interviewId; })[0] : null;
+    var trackIds = SKILL_TRACK_MAP[sid] || [];
+
+    var whyBlock;
+    if (signal) {
+      whyBlock = '<section class="page-summary"><div class="ps-head">为什么现在学</div><p>' + escapeHtml(signal.judgement) + '</p>' +
+        '<p class="mono-sm">命中：百度 ' + (signal.baidu == null ? '—' : signal.baidu + '%') + ' · 腾讯 ' +
+        (signal.tencent == null ? '—' : signal.tencent + '%') + '（关键词文本命中率，非硬性要求率；快照 2026-07-28）</p></section>';
+    } else {
+      whyBlock = '<section class="page-summary"><div class="ps-head">为什么现在学</div><p>' +
+        escapeHtml(SKILL_SIGNAL_FALLBACK[sid] || '按本页学习路线推进。') + '</p></section>';
+    }
+
+    var trackChips = trackIds.map(function (tid) {
+      return '<a class="chip" href="#reading/' + tid + '">' + escapeHtml(tid === 'common' ? '公共必读' : tid + ' · ' + (trackShort[tid] || tid)) + '</a>';
+    }).join('');
+
+    return '<div class="page">' +
+      l2Head('skills', '技能 · ' + s.priority, s.name, s.target, '#skills', '技能矩阵') +
+      whyBlock +
+      '<div class="card">' + kv([['目标水平', s.target], ['截止阶段', s.deadline], ['交付证据', s.deliverable]]) + '</div>' +
+      section('学习步骤') + (mainRefs.length
+        ? '<ol class="step-list">' + mainRefs.map(function (r, i) { return stepItem(r, i + 1, false); }).join('') + '</ol>'
+        : '<p class="muted">本条暂无结构化步骤，按目标与交付物推进。</p>') +
+      (extRefs.length ? details('延伸资料（' + extRefs.length + ' 项 · 不在主路径）',
+        '<div class="ref-list">' + extRefs.map(function (r) { return stepItem(r, 0, true); }).join('') + '</div>', false, '', true) : '') +
+      section('实践与验收') + '<div class="card"><div class="card-head"><strong>交付证据</strong></div><p>' + escapeHtml(s.deliverable) + '</p>' +
+      '<p class="muted">证据落在已有资产里，不在本页新造指标：<a href="#portfolio">作品集</a> · <a href="#reading">90 天计划</a></p>' +
+      (s.note ? '<div class="callout warn" style="margin-bottom:0"><span class="t">边界说明</span>' + escapeHtml(s.note) + '</div>' : '') + '</div>' +
+      (trackIds.length ? section('相关论文方向') + '<div class="filters">' + trackChips + '</div>' : '') +
+      (track ? section('面试接口') + '<div class="card"><div class="card-head"><strong>' + escapeHtml(track.name) + '</strong>' + badge(track.target, 'b-info') + '</div>' + list(track.items) + '</div>' : '') +
+      '<label class="mini-check"><input type="checkbox" data-check-id="' + escapeHtml(s.id) + '"' + (state.checks.has(s.id) ? ' checked' : '') + '> 标记这条路线完成</label>' +
+      '</div>';
   }
 
   function renderPortfolio() {
@@ -917,11 +1205,22 @@
     return renderers[route] ? route : 'dashboard';
   }
 
+  // 学习层两级 IA：hash 第二段（#reading/A、#skills/<id>），非法值由调用方回退 L1
+  function currentSubRoute() {
+    var parts = location.hash.replace(/^#/, '').split('/');
+    return parts.length > 1 ? parts[1] : '';
+  }
+
   function render(keepScroll) {
     var route = currentRoute();
+    var sub = currentSubRoute();
     var offset = keepScroll ? window.pageYOffset : 0;
     try {
-      app.innerHTML = renderers[route]();
+      var html;
+      if (route === 'reading' && READING_L2[sub]) html = renderReadingL2(sub);
+      else if (route === 'skills' && skillById(sub)) html = renderSkillL2(sub);
+      else html = renderers[route]();
+      app.innerHTML = html;
     } catch (error) {
       // 渲染失败时显示原因，避免整页空白让人无法判断问题
       app.innerHTML = '<div class="page"><div class="callout bad"><span class="t">页面渲染失败：' +
@@ -937,6 +1236,15 @@
     buildPageToc();
     bindPageEvents();
     window.scrollTo(0, offset);
+    if (pendingAnchor) {
+      var anchorEl = document.getElementById(pendingAnchor);
+      pendingAnchor = null;
+      if (anchorEl) {
+        var box = anchorEl.closest ? anchorEl.closest('details') : null;
+        if (box) box.open = true;
+        anchorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   }
 
   // 页内目录：从已渲染的 h3.sec 反推，渲染器不需要额外维护一份章节清单。
@@ -1019,13 +1327,31 @@
     app.querySelectorAll('[data-anchor]').forEach(function (link) {
       link.addEventListener('click', function (event) {
         event.preventDefault();
-        var target = document.getElementById(link.getAttribute('data-anchor'));
+        var id = link.getAttribute('data-anchor');
+        var target = document.getElementById(id);
         if (target) {
           // 目标在折叠块内时先展开（周条 chip → 对应周条目）
           var box = target.closest ? target.closest('details') : null;
           if (box) box.open = true;
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
         }
+        // 目标在另一条路由上：记下锚点，切路由后由 render() 滚动到位
+        pendingAnchor = id;
+        var href = link.getAttribute('href');
+        if (href && href.charAt(0) === '#') {
+          if (location.hash === href) render();
+          else location.hash = href.slice(1);
+        } else {
+          render();
+        }
+      });
+    });
+    // 目录卡整卡可点；点到勾选框/链接/折叠时让默认行为接管
+    app.querySelectorAll('[data-goto]').forEach(function (card) {
+      card.addEventListener('click', function (event) {
+        if (event.target.closest('a, button, label, input, summary, details')) return;
+        location.hash = card.getAttribute('data-goto');
       });
     });
   }
@@ -1042,11 +1368,16 @@
       var t = RESEARCH.reading.tracks[tid];
       entries.push({ route: 'reading', title: t.name, detail: t.pitch + ' ' + (trackShort[tid] || '') });
     });
-    allPapers().forEach(function (item) { entries.push({ route: 'reading', title: item.t, detail: (item.ax || '') + ' ' + (item.intro || '') + ' ' + item.why }); });
+    allPapers().forEach(function (item) {
+      entries.push({ route: 'reading/' + (item.level === 'common' ? 'common' : item.level),
+        crumb: '阅读 · ' + (item.level === 'common' ? '公共必读' : '方向 ' + item.level),
+        title: item.t, detail: (item.ax || '') + ' ' + (item.intro || '') + ' ' + item.why });
+    });
     TOOLS.core.forEach(function (item) { entries.push({ route: 'tools', title: item.n, detail: item.use + ' ' + (item.ref || '') }); });
     JOBS.teams.forEach(function (item) { entries.push({ route: 'jobs', title: item.company + ' · ' + item.name, detail: item.summary + ' ' + item.tags.join(' ') }); });
     SKILLS.signals.forEach(function (item) { entries.push({ route: 'skills', title: item.name, detail: item.judgement }); });
     PORTFOLIO.projects.forEach(function (item) { entries.push({ route: 'portfolio', title: item.name, detail: item.problem }); });
+    SKILLS.roadmap.forEach(function (item) { entries.push({ route: 'skills/' + item.id, crumb: '技能 · 学习路线', title: item.name, detail: item.target + ' ' + item.deliverable }); });
     JOBS.verification.forEach(function (item) { entries.push({ route: 'verify', title: item.title, detail: item.action }); });
     return entries;
   }
@@ -1071,7 +1402,8 @@
       return (item.title + ' ' + item.detail).toLowerCase().indexOf(query) >= 0;
     }).slice(0, 12);
     searchResults.innerHTML = hits.length ? hits.map(function (item) {
-      return '<a href="#' + escapeHtml(item.route) + '" class="search-result"><span class="where">' + escapeHtml(routeMeta[item.route][0]) + '</span><strong>' +
+      var where = item.crumb || (routeMeta[item.route] ? routeMeta[item.route][0] : '');
+      return '<a href="#' + escapeHtml(item.route) + '" class="search-result"><span class="where">' + escapeHtml(where) + '</span><strong>' +
         escapeHtml(item.title) + '</strong><span class="excerpt">' + escapeHtml(item.detail.slice(0, 92)) + (item.detail.length > 92 ? '…' : '') + '</span></a>';
     }).join('') : '<div class="empty">没有匹配的策展内容</div>';
     searchResults.hidden = false;

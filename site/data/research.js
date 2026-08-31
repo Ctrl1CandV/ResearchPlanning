@@ -146,7 +146,7 @@ window.RESEARCH = {
   reading: {
     common: {
       name:'公共必读 · 无论走哪条线',
-      note:'以下 13 篇是六个方向共享的地基：前 4 篇建立语言，中间 5 篇是记忆系统的参照系与 baseline 常客，后 4 篇是评测与批判的方法论。按顺序读约 30 小时；每篇都已在 site/papers/ 备好 PDF。',
+      note:'以下 13 篇是六个方向共享的地基：前 4 篇建立语言，中间 5 篇是记忆系统的参照系与 baseline 常客，后 4 篇是评测与批判的方法论。按顺序读约 37 小时（逐篇 h 相加口径，2026-08-30 订正）；每篇都已在 site/papers/ 备好 PDF。',
       items:[
         { n:1, t:'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks', ax:'2005.11401', y:'2020-05', v:'NeurIPS 2020', c:16334, h:'2h', pdf:true,
           intro:'检索增强生成的奠基论文：把「先检索再生成」形式化为端到端可训练框架（DPR + BART）。它定义了此后五年所有 RAG 工作的对话语言。',
@@ -225,18 +225,20 @@ window.RESEARCH = {
           { k:'第 6 月起', v:'论文：ESWA / KBS / ICSE-FSE 实证线；负结果按 HGB 模板写' }
         ],
         papers:[
+          /* tier 约定（LEARNING-IA-DESIGN.md §7/§8）：缺省 = 主路径；'extend' = 延伸（L2 折叠，不进 90 天主路径）。
+             B：主路径 6（全部有本地 PDF）+ 延伸 6。 */
           { t:'The Interaction Tax: When Communication Erases Diversity in Multi-Agent Teams', ax:'2608.23541', y:'2026-08', v:'ICML 2026 (PMLR 306)', h:'3h', pdf:true, why:'通信会抹除多样性——你的核心假设的量化对手，实验设计必须回应它', key:true },
           { t:'The Collaboration Tax: How Much LLM Multi-Agent Systems Pay to Coordinate', ax:'2608.22152', y:'2026-08', v:'arXiv', h:'2h', pdf:true, why:'协调成本量化：成本侧的证据与指标来源' },
           { t:'OrchestraBench: Evaluating Multi-Agent Orchestration Failure Modes, Recovery, and Decomposition Quality', ax:'2608.05263', y:'2026-08', v:'arXiv', h:'2h', pdf:true, why:'编排失败模式与恢复评测——实验任务与指标的现成参照' },
-          { t:'Multi-Agent Debate Strategies: Survey, Taxonomy, and Challenges', ax:'2607.26212', y:'2026-07', v:'arXiv（投 ACM CSUR）', h:'3h', why:'MAD 策略分类综述，related work 的组织骨架' },
-          { t:'Beyond Individual Intelligence: Surveying Collaboration, Failure Attribution, and Self-Evolution in LLM-based Multi-Agent Systems', ax:'2605.14892', y:'2026-05', v:'arXiv（LIFE 综述）', h:'3h', why:'协作/归因/自演化的统一框架，失败归因部分的对话对象' },
           { t:'AutoGen: Multi-Agent Conversation', ax:'2308.08155', y:'2023', v:'COLM 2024', c:2178, h:'2h', pdf:true, why:'最主流 MAS 框架——共享辩论基线的实现载体' },
           { t:'Language Agents as Optimizable Graphs (GPTSwarm)', ax:'2402.16823', y:'2024', v:'ICML 2024', h:'3h', pdf:true, why:'把 Agent 系统建模为可优化图——审查拓扑消融的方法论范本' },
           { t:'G-Designer: Multi-agent Communication Topologies via GNNs', ax:'2410.11782', y:'2024', v:'ICML 2025', c:88, h:'2h', pdf:true, why:'用 VGAE 生成通信拓扑——导师方法能直接读懂的一篇，衔接点' },
-          { t:'Agent Workflow Memory', ax:'2409.07429', y:'2024-09', v:'ICML 2025', c:207, h:'2h', why:'从历史轨迹归纳可复用 workflow——「经验应该共享还是私有」的参照' },
-          { t:'CAMEL: Communicative Agents for Mind Exploration', ax:'2303.17760', y:'2023', v:'NeurIPS 2023', c:1654, h:'2h', why:'角色扮演式协作起点，审查角色设计的思想来源' },
-          { t:'MetaGPT: Meta Programming for Multi-Agent Collaborative Framework', ax:'2308.00352', y:'2023', v:'ICLR 2024', c:2177, h:'2h', why:'SOP 编码进 Agent 分工——权限分层的工业界对应物' },
-          { t:'LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems', ax:'2510.04851', y:'2025', v:'会议论文集', c:29, h:'2h', why:'多 Agent 程序性记忆分配——「经验给谁用」的对照' }
+          { t:'Multi-Agent Debate Strategies: Survey, Taxonomy, and Challenges', ax:'2607.26212', y:'2026-07', v:'arXiv（投 ACM CSUR）', h:'3h', tier:'extend', why:'MAD 策略分类综述，related work 的组织骨架' },
+          { t:'Beyond Individual Intelligence: Surveying Collaboration, Failure Attribution, and Self-Evolution in LLM-based Multi-Agent Systems', ax:'2605.14892', y:'2026-05', v:'arXiv（LIFE 综述）', h:'3h', tier:'extend', why:'协作/归因/自演化的统一框架，失败归因部分的对话对象' },
+          { t:'Agent Workflow Memory', ax:'2409.07429', y:'2024-09', v:'ICML 2025', c:207, h:'2h', tier:'extend', why:'从历史轨迹归纳可复用 workflow——「经验应该共享还是私有」的参照' },
+          { t:'CAMEL: Communicative Agents for Mind Exploration', ax:'2303.17760', y:'2023', v:'NeurIPS 2023', c:1654, h:'2h', tier:'extend', why:'角色扮演式协作起点，审查角色设计的思想来源' },
+          { t:'MetaGPT: Meta Programming for Multi-Agent Collaborative Framework', ax:'2308.00352', y:'2023', v:'ICLR 2024', c:2177, h:'2h', tier:'extend', why:'SOP 编码进 Agent 分工——权限分层的工业界对应物' },
+          { t:'LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems', ax:'2510.04851', y:'2025', v:'会议论文集', c:29, h:'2h', tier:'extend', why:'多 Agent 程序性记忆分配——「经验给谁用」的对照' }
         ],
         repos:[ { r:'Ctrl1CandV/AgentParliament', note:'实验宿主：10 工具、三级权限、角色链 profiles' }, { r:'microsoft/autogen', note:'共享辩论基线实现' } ],
         datasets:[ { n:'minibank-trap（自有）', d:'缺陷召回的 gold 集' }, { n:'OrchestraBench', d:'编排失败模式任务' } ],
@@ -253,20 +255,21 @@ window.RESEARCH = {
           { k:'第 6 月起', v:'论文：KBS / ESWA / Neurocomputing 或 NeurIPS D&B' }
         ],
         papers:[
+          /* C：主路径 5 + 延伸 4。Oblivion（2604.00131）已从本方向删除——一篇只归一处，
+             它的家在方向 F（压缩/衰减基线）；对照关系写在本方向 note 里。 */
           { t:'LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory', ax:'2410.10813', y:'2024-10', v:'ICLR 2025', c:450, h:'3h', pdf:true, why:'500 问、五类记忆能力细分——协议的能力维度直接借它的划分', key:true },
           { t:'MemoryAgentBench: Evaluating Memory via Incremental Multi-Turn Interactions', ax:'2507.05257', y:'2025-07', v:'arXiv', c:156, h:'2h', pdf:true, why:'四维能力含「冲突消解」——你边界实验的现成维度', key:true },
           { t:'Harness the Memory: A Holistic Evaluation of Memory Substrates in Memory Agents', ax:'2608.15008', y:'2026-08', v:'arXiv', h:'3h', pdf:true, why:'「没有单一存储始终最优」——你的直接前作，协议设计必须站在它肩上', key:true },
           { t:'MemoryLake on MemoryArena: A Matched Study of Agent Memory Backends', ax:'2608.13883', y:'2026-08', v:'arXiv', h:'2h', pdf:true, why:'配对研究（matched study）的实验设计范式——同口径对比的模板' },
           { t:'From Storage to Experience: A Survey on the Evolution of LLM Agent Memory', ax:'2605.06716', y:'2026-05', v:'ACL 2026 Findings', c:10, h:'3h', why:'2026 年的最新全局图景与 open problems' },
-          { t:'Oblivion: Self-Adaptive Agentic Memory Control through Decay-Driven Activation', ax:'2604.00131', y:'2026-03', v:'arXiv（NEC Labs）', h:'2h', why:'遗忘/衰减的最新代表——被评测的「遗忘策略」之一，代码开源' },
-          { t:'Memory OS of AI Agent (MemoryOS)', ax:'2506.06326', y:'2025-05', v:'EMNLP 2025', c:92, h:'2h', why:'三级存储+页面调度——层级记忆的被评测代表，国内同类' },
-          { t:'MIRIX: Multi-Agent Memory System for LLM-Based Agents', ax:'2507.07957', y:'2025-07', v:'arXiv', c:135, h:'2h', why:'六类记忆模块分工——「记忆分类法」的工业版' },
-          { t:'MemoryBank: Enhancing LLMs with Long-Term Memory', ax:'2305.10250', y:'2023-05', v:'AAAI 2024', c:569, h:'2h', why:'艾宾浩斯遗忘曲线做更新——遗忘策略谱系的起点' },
-          { t:'General Agentic Memory Via Deep Research', ax:'2511.18423', y:'2025-11', v:'arXiv', c:31, h:'2h', why:'反方观点：放弃预构建索引——「记忆是否需要组织」的对立面' }
+          { t:'Memory OS of AI Agent (MemoryOS)', ax:'2506.06326', y:'2025-05', v:'EMNLP 2025', c:92, h:'2h', tier:'extend', why:'三级存储+页面调度——层级记忆的被评测代表，国内同类' },
+          { t:'MIRIX: Multi-Agent Memory System for LLM-Based Agents', ax:'2507.07957', y:'2025-07', v:'arXiv', c:135, h:'2h', tier:'extend', why:'六类记忆模块分工——「记忆分类法」的工业版' },
+          { t:'MemoryBank: Enhancing LLMs with Long-Term Memory', ax:'2305.10250', y:'2023-05', v:'AAAI 2024', c:569, h:'2h', tier:'extend', why:'艾宾浩斯遗忘曲线做更新——遗忘策略谱系的起点' },
+          { t:'General Agentic Memory Via Deep Research', ax:'2511.18423', y:'2025-11', v:'arXiv', c:31, h:'2h', tier:'extend', why:'反方观点：放弃预构建索引——「记忆是否需要组织」的对立面' }
         ],
         repos:[ { r:'mem0ai/mem0', note:'被评测后端之一' }, { r:'getzep/graphiti', note:'图记忆后端（需 Neo4j/FalkorDB）' }, { r:'letta-ai/letta', note:'MemGPT 系后端' } ],
         datasets:[ { n:'LoCoMo（公共层第 10 篇）', d:'对话记忆主基准' }, { n:'LongMemEval / MemoryAgentBench', d:'能力细分与冲突维度' } ],
-        note:'若导师希望课题更贴他技术栈，本方向可与 D/F 合并前置——图记忆从「被评测对象」升级为「被设计的方案」。'
+        note:'若导师希望课题更贴他技术栈，本方向可与 D/F 合并前置——图记忆从「被评测对象」升级为「被设计的方案」。遗忘/衰减策略对照见方向 F 的 Oblivion（2604.00131）。'
       },
       D: {
         name:'方向 D · 图结构化记忆：异构属性记忆图的社区发现与分层压缩',
@@ -279,24 +282,26 @@ window.RESEARCH = {
           { k:'第 5—6 月', v:'论文：KBS / ESWA / Neurocomputing（导师主场），冲一冲 TOIS' }
         ],
         papers:[
-          { t:'Semi-Supervised Classification with Graph Convolutional Networks (GCN)', ax:'1609.02907', y:'2016', v:'ICLR 2017', c:36222, h:'2h', pdf:true, why:'导师所有论文的地基，必须能徒手推导' },
-          { t:'Graph Attention Networks (GAT)', ax:'1710.10903', y:'2017', v:'ICLR 2018', c:27410, h:'2h', pdf:true, why:'导师偏爱注意力机制' },
-          { t:'Inductive Representation Learning on Large Graphs (GraphSAGE)', ax:'1706.02216', y:'2017', v:'NeurIPS 2017', c:20487, h:'2h', pdf:true, why:'邻居采样 → 你的子图采样' },
+          /* D：前置 3（tier:'prereq'，选本方向才要求）+ 主列表 8 + 延伸 7。
+             HAN 是方法主干，进主列表不进前置；粗化 2106.05150 的家在这里，方向 F 只引用不复制。 */
+          { t:'Semi-Supervised Classification with Graph Convolutional Networks (GCN)', ax:'1609.02907', y:'2016', v:'ICLR 2017', c:36222, h:'2h', pdf:true, tier:'prereq', why:'导师所有论文的地基，必须能徒手推导' },
+          { t:'Graph Attention Networks (GAT)', ax:'1710.10903', y:'2017', v:'ICLR 2018', c:27410, h:'2h', pdf:true, tier:'prereq', why:'导师偏爱注意力机制' },
+          { t:'Inductive Representation Learning on Large Graphs (GraphSAGE)', ax:'1706.02216', y:'2017', v:'NeurIPS 2017', c:20487, h:'2h', pdf:true, tier:'prereq', why:'邻居采样 → 你的子图采样' },
           { t:'Heterogeneous Graph Attention Network (HAN)', ax:'1903.07293', y:'2019', v:'WWW 2019', c:3260, h:'3h', pdf:true, why:'元路径+双注意力——记忆图主干的首选', key:true },
-          { t:'Heterogeneous Graph Transformer (HGT)', ax:'2003.01332', y:'2020', v:'WWW 2020', c:1697, h:'3h', why:'元关系参数化注意力，免手工元路径' },
-          { t:'Attributed Graph Clustering: Deep Attentional Embedding (DAEGC)', ax:'1906.06532', y:'2019', v:'IJCAI 2019', c:646, h:'3h', why:'属性图聚类奠基，导师 ASOC 2024 的同族' },
           { t:'Structural Deep Clustering Network (SDCN)', ax:'2002.01633', y:'2020', v:'WWW 2020', c:686, h:'3h', pdf:true, why:'AE+GCN 双流融合——导师「多嵌入融合」的思想来源', key:true },
           { t:'Graph Clustering with Graph Neural Networks (DMoN)', ax:'2006.16904', y:'2020', v:'JMLR 24(127) 2023', c:413, h:'3h', pdf:true, why:'可微模块度池化——端到端社区发现的关键武器', key:true },
           { t:'Scaling Up GNNs Via Graph Coarsening', ax:'2106.05150', y:'2021', v:'KDD 2021', c:144, h:'3h', pdf:true, why:'图粗化——分层压缩的理论地基（也是方向 F 的核心）', key:true },
-          { t:'A Comprehensive Survey on Community Detection with Deep Learning', ax:'2105.12584', y:'2021', v:'IEEE TNNLS', c:456, h:'3h', why:'导师方向的地图' },
-          { t:'HiRAG: RAG with Hierarchical Knowledge', ax:'2503.10150', y:'2025', v:'EMNLP 2025 Findings', c:40, h:'2h', why:'层级知识检索，与分层记忆重叠——划界用' },
-          { t:'AriGraph: KG World Models with Episodic Memory for LLM Agents', ax:'2407.04363', y:'2024-07', v:'IJCAI 2025', c:92, h:'3h', pdf:true, why:'语义+情节记忆融合的世界模型图，异构记忆图直接前身，代码开源' },
-          { t:'Memory is Reconstructed, Not Retrieved: Graph Memory for LLM Agents', ax:'2606.06036', y:'2026-06', v:'ICML 2026', c:2, h:'3h', pdf:true, warn:true, why:'2026 最新且撞方向，必读' },
-          { t:'From Experience to Strategy: Trainable Graph Memory', ax:'2511.07800', y:'2025-11', v:'arXiv', c:10, h:'2h', warn:true, why:'「可训练图记忆」已被占——读它划清边界' },
           { t:'Graph Retrieval-Augmented Generation: A Survey', ax:'2408.08921', y:'2024-08', v:'ACM TOIS', c:500, h:'3h', pdf:true, why:'GraphRAG 首篇综述，G-Indexing/G-Retrieval/G-Generation 三段框架——D 的检索分类框架就用它' },
-          { t:'From RAG to Memory: Non-Parametric Continual Learning for LLMs (HippoRAG 2)', ax:'2502.14802', y:'2025-02', v:'ICML 2025', c:181, h:'3h', pdf:true, why:'段落+概念混合图，明确把 RAG 重定义为 memory 问题' },
+          { t:'AriGraph: KG World Models with Episodic Memory for LLM Agents', ax:'2407.04363', y:'2024-07', v:'IJCAI 2025', c:92, h:'3h', pdf:true, why:'语义+情节记忆融合的世界模型图，异构记忆图直接前身，代码开源' },
           { t:'HippoRAG: Neurobiologically Inspired Long-Term Memory for LLMs', ax:'2405.14831', y:'2024-05', v:'NeurIPS 2024', c:284, h:'3h', pdf:true, why:'PPR 在开放 KG 上模拟海马索引——能立刻上手的图算法范式' },
-          { t:'G-Retriever: RAG for Textual Graph Understanding and QA', ax:'2402.07630', y:'2024-02', v:'NeurIPS 2024', c:321, h:'3h', pdf:true, why:'子图检索形式化为带奖赏斯坦纳树——子图召回的出发点' }
+          { t:'Memory is Reconstructed, Not Retrieved: Graph Memory for LLM Agents', ax:'2606.06036', y:'2026-06', v:'ICML 2026', c:2, h:'3h', pdf:true, warn:true, why:'2026 最新且撞方向，必读' },
+          { t:'Heterogeneous Graph Transformer (HGT)', ax:'2003.01332', y:'2020', v:'WWW 2020', c:1697, h:'3h', tier:'extend', why:'元关系参数化注意力，免手工元路径' },
+          { t:'Attributed Graph Clustering: Deep Attentional Embedding (DAEGC)', ax:'1906.06532', y:'2019', v:'IJCAI 2019', c:646, h:'3h', tier:'extend', why:'属性图聚类奠基，导师 ASOC 2024 的同族' },
+          { t:'A Comprehensive Survey on Community Detection with Deep Learning', ax:'2105.12584', y:'2021', v:'IEEE TNNLS', c:456, h:'3h', tier:'extend', why:'导师方向的地图' },
+          { t:'HiRAG: RAG with Hierarchical Knowledge', ax:'2503.10150', y:'2025', v:'EMNLP 2025 Findings', c:40, h:'2h', tier:'extend', why:'层级知识检索，与分层记忆重叠——划界用' },
+          { t:'From Experience to Strategy: Trainable Graph Memory', ax:'2511.07800', y:'2025-11', v:'arXiv', c:10, h:'2h', tier:'extend', warn:true, why:'「可训练图记忆」已被占——读它划清边界' },
+          { t:'From RAG to Memory: Non-Parametric Continual Learning for LLMs (HippoRAG 2)', ax:'2502.14802', y:'2025-02', v:'ICML 2025', c:181, h:'3h', pdf:true, tier:'extend', why:'段落+概念混合图，明确把 RAG 重定义为 memory 问题' },
+          { t:'G-Retriever: RAG for Textual Graph Understanding and QA', ax:'2402.07630', y:'2024-02', v:'NeurIPS 2024', c:321, h:'3h', pdf:true, tier:'extend', why:'子图检索形式化为带奖赏斯坦纳树——子图召回的出发点' }
         ],
         repos:[ { r:'gusye1234/nano-graphrag', note:'千行教学级实现，定位「社区划分在哪一行」' }, { r:'HKUDS/LightRAG', note:'一键 baseline 宿主' }, { r:'microsoft/graphrag', note:'官方实现（索引烧钱，勿先碰）', warn:true } ],
         datasets:[ { n:'Cora / Citeseer / PubMed', d:'图聚类标配（PyG Planetoid）' }, { n:'DBLP / ACM / IMDB 异构图', d:'方法先在这验证（PyG/HGB）' }, { n:'LoCoMo / LongMemEval', d:'端到端记忆指标（公共层）' } ],

@@ -26,7 +26,7 @@
   --text:          #e8ecf5;
   --text-soft:     #a8b3c7;
   --text-dim:      #97a2b6;
-  --text-faint:    #7e8aa0;
+  --text-faint:    #7f8ba1;
 
   --accent:        #7d9bff;   /* 蓝图靛：导航、章节、可交互元素 */
   --accent-2:      #a9bbff;   /* 浅靛：渐变末端、高亮文字 */
@@ -68,6 +68,7 @@
 
 /* 浅色主题 */
 body.light {
+  color-scheme: light;
   --bg:            #f5f6f9;
   --bg-elevated:   #ffffff;
   --bg-card:       #ffffff;
@@ -78,15 +79,16 @@ body.light {
   --text:          #1a1f28;
   --text-soft:     #48536a;
   --text-dim:      #5d6879;
-  --text-faint:    #67738a;
+  --text-faint:    #626d83;
   /* 浅色下靛蓝要压深才有足够对比 */
   --accent:        #4055c8;
   --accent-2:      #2f3fa0;
   --accent-deep:   #33439f;
   --accent-glow:   rgba(64, 85, 200, 0.09);
-  --high:   #15803d;
-  --mid:    #b45309;
-  --low:    #dc2626;
+  /* 2026-08-31 对比度订正：只压亮度不改色相（证据三色语义不变，见 MAINTENANCE 6.2） */
+  --high:   #157e3c;
+  --mid:    #b05109;
+  --low:    #d52222;
   --info:   #0369a1;
   --purple: #7c3aed;
   --grid-line: rgba(64, 85, 200, 0.05);
@@ -101,6 +103,7 @@ body.light {
 html { scroll-behavior: smooth; }
 
 body {
+  color-scheme: dark;
   margin: 0;
   background: var(--bg);
   color: var(--text);
@@ -1682,6 +1685,222 @@ details.acc.ref > summary {
 }
 details.acc.ref > summary::before { border-left-color: var(--text-faint); }
 
+/* ─────────────── 学习层两级 IA（2026-08-30，LEARNING-IA-DESIGN.md） ───────────────
+   L1 目录卡 / L2 面包屑与论文行 / 技能学习步骤。只复用现有令牌，不新增颜色。 */
+
+.crumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 16px;
+  font: 11.5px var(--mono);
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+}
+.crumb a { color: var(--accent); }
+.crumb .crumb-here { color: var(--text-faint); }
+
+/* 目录卡：L1 的教学对象入口，整卡可点（data-goto），点勾选/链接时让默认行为接管 */
+a.cat-card { display: block; color: inherit; text-decoration: none; }
+.cat-card { cursor: pointer; }
+.cat-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: var(--inset-hi), var(--shadow-card);
+}
+.cat-card.cat-rec {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 1px var(--accent-glow), var(--shadow-card);
+}
+.cat-card strong a { color: inherit; }
+.cat-card strong a:hover { text-decoration: none; color: var(--accent); }
+.cat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0;
+  font: 11.5px var(--mono);
+  color: var(--text-faint);
+  letter-spacing: 0.3px;
+}
+.cat-pitch { margin: 4px 0 10px; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
+.cat-go { font: 600 11.5px var(--mono); color: var(--accent); letter-spacing: 0.4px; }
+
+/* L2 论文行：默认一行（序号/勾选/标题/PDF/工时/why），intro·出处·徽章折叠 */
+.lp-list { padding: 8px 14px; }
+.lpaper { padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
+.lpaper:last-child { border-bottom: 0; }
+.lp-row { display: flex; align-items: flex-start; gap: 10px; }
+.lp-no { flex: 0 0 26px; padding-top: 2px; font: 600 12px var(--mono); color: var(--text-faint); text-align: right; }
+.lp-check { flex: 0 0 auto; padding: 0; }
+.lp-check .box { margin-top: 2px; }
+.lp-main { flex: 1; min-width: 0; }
+.lp-title { font-size: 13.5px; font-weight: 570; line-height: 1.55; }
+.lp-h { margin-left: 7px; font: 11px var(--mono); color: var(--text-faint); white-space: nowrap; }
+.lp-why { margin-top: 3px; font-size: 12.5px; color: var(--text-soft); line-height: 1.6; }
+.lp-more > summary {
+  padding: 5px 0 0 36px;
+  font: 11px var(--mono);
+  color: var(--text-faint);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.lp-more > summary::-webkit-details-marker { display: none; }
+.lp-more > summary::before { content: "▸"; margin-right: 6px; }
+.lp-more[open] > summary { color: var(--text-dim); }
+.lp-more[open] > summary::before { content: "▾"; }
+.lp-more-body { padding: 8px 0 2px 36px; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
+.lp-more-body .pv { margin: 4px 0; }
+.lp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ax-link {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* 技能学习步骤：refs 从资料堆变成有序步骤 */
+.step-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.step-item .s-no {
+  flex: 0 0 22px;
+  height: 22px;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+  font: 600 11.5px var(--mono);
+}
+.step-body { flex: 1; min-width: 0; }
+.step-kind { display: block; margin-bottom: 2px; font: 11px var(--mono); color: var(--text-faint); letter-spacing: 0.4px; }
+.step-item .ref-item { font-size: 13px; }
+
+/* ws-chip 以 <a> 形态复用（L2 的周接口、本周卡的「周明细」） */
+a.ws-chip { display: inline-block; text-decoration: none; }
+a.chip { text-decoration: none; }
+
+/* ─────────────── 视觉收尾校准（2026-08-30） ───────────────
+   不改变信息架构与色板，只校准交互归属、可读性和学习页密度。 */
+
+/* 同一标签在要点块与「当前阶段 / 本周」卡中保持一致。 */
+.page-summary .ps-head,
+.now-card .ps-head {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font: 600 10.5px var(--mono);
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+/* 静态卡片不伪装成入口；只有真正可进入的目录卡获得明显反馈。 */
+.card:hover {
+  border-color: var(--border);
+  box-shadow: var(--inset-hi), var(--shadow-sm);
+}
+
+a.cat-card { display: flex; }
+.cat-card {
+  flex-direction: column;
+  cursor: pointer;
+}
+.cat-card:hover,
+.cat-card:focus-within,
+a.cat-card:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  box-shadow: 0 0 0 1px var(--accent-glow), var(--shadow-card);
+}
+.cat-card strong a:focus-visible { outline: none; }
+.cat-card .cat-pitch { flex: 1; }
+.cat-card .cat-go,
+.cat-card > .mini-check { margin-top: auto; }
+.cat-meta { margin: 8px 0 6px; }
+.cat-pitch { margin-bottom: 14px; }
+
+/* 裁剪隐藏的 input 聚焦时，把焦点明确画到可见方框上。 */
+.chk input:focus-visible + .box {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow), 0 0 0 1px var(--accent);
+}
+
+/* 完成、过去、非目标等降级态不再用父级透明度压低真实文字。 */
+.job.tier-Avoid {
+  opacity: 1;
+  border-left-color: var(--text-faint);
+  background: color-mix(in srgb, var(--bg-inset) 35%, var(--bg-card));
+}
+.verify-card.done {
+  opacity: 1;
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--accent) 3%, var(--bg-card));
+}
+.city-group.grp-transit,
+.city-group.grp-other,
+.region-card.region-transit,
+.spine-item.past { opacity: 1; }
+.city-group.grp-transit .city-group-head b { color: var(--text-dim); }
+.city-group.grp-transit .bar > i { background: var(--text-faint); opacity: .72; }
+.city-group.grp-other .city-group-head b { color: var(--text-dim); }
+.region-card.region-transit {
+  border-left-color: var(--border-strong);
+  background: color-mix(in srgb, var(--bg-inset) 28%, var(--bg-card));
+}
+.spine-item.past .spine-line b { color: var(--text-dim); }
+
+/* L1 / L2 学习页：目录疏、执行行紧凑，但交互目标保持足够面积。 */
+.crumb {
+  margin-bottom: 18px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+.crumb a { font-weight: 600; }
+.lp-list { padding: 6px 16px; }
+.lpaper { padding: 12px 2px; }
+.lp-more > summary {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 2px;
+  padding: 7px 8px 7px 36px;
+  border-radius: var(--radius-sm);
+  transition: color .14s, background .14s;
+}
+.lp-more > summary:hover,
+.lp-more > summary:focus-visible { background: var(--bg-card-hover); }
+.lp-more[open] > summary {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.lp-more-body { padding: 8px 8px 4px 36px; }
+.step-list { gap: 9px; }
+.step-item { padding: 12px 14px; }
+
+/* 按钮版和锚点版周控件共享同一对齐与触控区域。 */
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+}
+a.ws-chip {
+  display: inline-flex;
+  width: auto;
+  min-width: 46px;
+  padding: 4px 10px;
+  text-decoration: none;
+}
+
 /* ─────────────── 响应式 ─────────────── */
 
 @media (max-width: 900px) {
@@ -1707,6 +1926,23 @@ details.acc.ref > summary::before { border-left-color: var(--text-faint); }
   .story-step { flex-basis: 100%; }
   .phase-grid { grid-template-columns: 1fr; }
   .phase-head { flex-direction: column; }
+  .lp-list { padding: 4px 10px; }
+  .lpaper { padding: 13px 0; }
+  .lp-row { display: grid; grid-template-columns: 22px 20px minmax(0, 1fr); gap: 7px; }
+  .lp-no { width: auto; padding-top: 3px; text-align: left; }
+  .lp-check .box { width: 18px; height: 18px; margin-top: 1px; }
+  .lp-title { line-height: 1.6; }
+  .lp-title .pdf-link { margin: 5px 7px 0 0; }
+  .lp-h { display: inline-block; margin: 5px 0 0; }
+  .lp-why { margin-top: 6px; }
+  .lp-more > summary {
+    min-height: 40px;
+    margin-left: 49px;
+    padding: 8px;
+  }
+  .lp-more-body { padding: 7px 8px 4px 49px; }
+  .stage-flow { grid-template-columns: 1fr; }
+  .step-item { gap: 9px; padding: 11px; }
 }
 
 /* ─────────────── 打印 ─────────────── */
@@ -1717,8 +1953,10 @@ details.acc.ref > summary::before { border-left-color: var(--text-faint); }
   .sidebar, .topbar, .nav-overlay, .site-footer, .page-toc { display: none !important; }
   .main, .page { max-width: none; padding: 0; }
   #app { display: block; max-width: none; }
-  details.acc > .acc-body { display: block; }
-  .card, .job, .mx-card { break-inside: avoid; }
+  details.acc > .acc-body,
+  details.lp-more > .lp-more-body { display: block; }
+  details.lp-more > summary { display: none; }
+  .card, .job, .mx-card, .lpaper, .step-item { break-inside: avoid; }
   .page-head h2 { color: var(--text); -webkit-text-fill-color: var(--text); background: none; }
 }
 

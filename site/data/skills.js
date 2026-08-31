@@ -41,16 +41,17 @@ window.SKILLS = {
       refs:[
         { kind:'web', label:'LeetCode · Hot 100 学习计划', url:'https://leetcode.cn/studyplan/top-100-liked/' },
         { kind:'web', label:'代码随想录（按专题的免费题单与图解）', url:'https://programmercarl.com/' },
-        { kind:'book', label:'《剑指 Offer（第 2 版）》', url:'' }
+        { kind:'book', label:'《剑指 Offer（第 2 版）》', url:'', tier:'extend' }
       ] },
     { id:'skill-cs', name:'OS / 网络 / 数据库 / 并发', priority:'P0', domain:'interview', target:'能从生产故障与系统设计角度解释，不只背定义', deadline:'2027.12 前', deliverable:'四份主题笔记 + 20 个生产案例回答', status:'planned',
       refs:[
         { kind:'book', label:'《操作系统导论》（OSTEP，英文版官网免费）', url:'https://pages.cs.wisc.edu/~remzi/OSTEP/' },
-        { kind:'web', label:'CMU 15-445 数据库系统（公开课 + 项目）', url:'https://15445.courses.cs.cmu.edu/' },
+        { kind:'web', label:'CMU 15-445 数据库系统（公开课；讲义优先，lab 可选）', url:'https://15445.courses.cs.cmu.edu/' },
         { kind:'web', label:'小林 coding（图解网络 / 图解系统 / 图解 MySQL）', url:'https://xiaolincoding.com/' },
-        { kind:'book', label:'《TCP/IP 详解 卷 1》', url:'' }
+        { kind:'book', label:'《TCP/IP 详解 卷 1》', url:'', tier:'extend' }
       ] },
     { id:'skill-eval', name:'Agent 评测与可观测性', priority:'P0', domain:'agent', target:'独立设计 benchmark、trace schema、指标和回归门禁', deadline:'2027.06 前', deliverable:'minibank-trap 受控评测报告 + Atlas 假成功检测对比数据', status:'planned',
+      note:'评测设施在 90 天计划 W3—W8 就要动起来（受控重跑、基准设计、对比表）；2027.06 的截止指「独立设计 benchmark、trace schema 与回归门禁」的完整能力，不是把评测拖到次年才开始。',
       refs:[
         { kind:'paper', label:'假成功刻画（首篇对手，必读）', url:'https://arxiv.org/abs/2606.09863', local:'2606.09863' },
         { kind:'paper', label:'reliability@k 评测协议', url:'https://arxiv.org/abs/2608.14711', local:'2608.14711' },
@@ -67,8 +68,8 @@ window.SKILLS = {
     { id:'skill-system-design', name:'后端与 Agent 系统设计', priority:'P0', domain:'systems', target:'设计高可用 Agent Runtime，覆盖幂等、重试、限流、观测和成本', deadline:'2028.01 前', deliverable:'6 个系统设计题 + 架构图 + trade-off 文档', status:'planned',
       refs:[
         { kind:'book', label:'《Designing Data-Intensive Applications》（DDIA）', url:'' },
-        { kind:'web', label:'ByteByteGo 系统设计图解', url:'https://bytebytego.com/' },
-        { kind:'web', label:'MIT 6.824 分布式系统（公开课 + lab）', url:'https://pdos.csail.mit.edu/6.824/' }
+        { kind:'web', label:'ByteByteGo 系统设计图解（商业图解，作直觉，不作唯一来源）', url:'https://bytebytego.com/' },
+        { kind:'web', label:'MIT 6.5840 分布式系统（公开课 + lab，原 6.824）', url:'https://pdos.csail.mit.edu/6.824/' }
       ] },
     { id:'skill-go', name:'Go 并发服务', priority:'P1', domain:'backend', target:'能写并压测 worker pool、调度器和流式服务', deadline:'2027.08 前', deliverable:'Go AST/调度服务，带 benchmark 与 pprof', status:'planned',
       refs:[
@@ -85,7 +86,7 @@ window.SKILLS = {
     { id:'skill-protocols', name:'MCP / Skills / Function Calling', priority:'P1', domain:'agent', target:'实现协议两端并能讲清能力发现、安全和生命周期差异', deadline:'2027.03 前', deliverable:'一个 MCP server/client + 对比文档', status:'planned',
       refs:[
         { kind:'web', label:'Model Context Protocol 官方文档与规范', url:'https://modelcontextprotocol.io/' },
-        { kind:'paper', label:'Toolformer（模型自学调工具的起点）', url:'https://arxiv.org/abs/2302.04761' }
+        { kind:'paper', label:'Toolformer（模型自学调工具的起点）', url:'https://arxiv.org/abs/2302.04761', tier:'extend' }
       ] },
     { id:'skill-agent-patterns', name:'Agent 架构模式', priority:'P1', domain:'agent', target:'能按任务选择 ReAct、Plan-and-Execute、Self-Refine、多 Agent', deadline:'2027.06 前', deliverable:'同 benchmark 下的策略消融', status:'planned',
       refs:[
@@ -95,23 +96,24 @@ window.SKILLS = {
       ] },
     { id:'skill-model-basics', name:'Transformer / KV Cache / LoRA / RLHF 基础', priority:'P1', domain:'model', target:'达到应用工程面试解释与成本估算水平', deadline:'2027.12 前', deliverable:'一份模型基础面试手册', status:'planned',
       refs:[
-        { kind:'paper', label:'Attention Is All You Need（Transformer 原文）', url:'https://arxiv.org/abs/1706.03762' },
-        { kind:'paper', label:'LoRA（低秩适配）', url:'https://arxiv.org/abs/2106.09685' },
+        { kind:'paper', label:'Attention Is All You Need（Transformer 原文）', url:'https://arxiv.org/abs/1706.03762', tier:'extend' },
+        { kind:'paper', label:'LoRA（低秩适配）', url:'https://arxiv.org/abs/2106.09685', tier:'extend' },
         { kind:'web', label:'The Illustrated Transformer（图解）', url:'https://jalammar.github.io/illustrated-transformer/' }
       ] },
     { id:'skill-k8s', name:'K8s 部署与治理', priority:'P2', domain:'systems', target:'会部署、探针、HPA、资源限制、灰度与故障排查', deadline:'2027.10 前', deliverable:'项目二部署清单与压测记录', status:'planned',
       refs:[
         { kind:'web', label:'Kubernetes 官方文档与交互教程', url:'https://kubernetes.io/zh-cn/docs/tutorials/' },
-        { kind:'book', label:'《Kubernetes in Action》', url:'' }
+        { kind:'book', label:'《Kubernetes in Action》', url:'', tier:'extend' }
       ] },
     { id:'skill-graphdb', name:'图数据库工程', priority:'P2', domain:'data', target:'掌握 schema、索引、查询、批量写入和性能边界', deadline:'2027.08 前', deliverable:'Neo4j/FalkorDB 二选一的代码图谱实现', status:'planned',
+      note:'Neo4j 或 FalkorDB 二选一做深，不为技术清单重复实现两套。',
       refs:[
         { kind:'web', label:'Neo4j GraphAcademy（官方免费课程）', url:'https://graphacademy.neo4j.com/' },
         { kind:'web', label:'FalkorDB 文档', url:'https://docs.falkordb.com/' }
       ] },
     { id:'skill-framework-judgement', name:'LangChain / LangGraph 判断力', priority:'P3', domain:'framework', target:'能解释何时复用、何时自建，不依赖框架完成核心逻辑', deadline:'按项目需要', deliverable:'一次框架与自建实现的 trade-off 记录', status:'planned',
       refs:[
-        { kind:'web', label:'LangChain 官方文档（知道抽象边界即可）', url:'https://python.langchain.com/docs/introduction/' },
+        { kind:'web', label:'LangChain 官方文档（知道抽象边界即可）', url:'https://docs.langchain.com/oss/python/langchain/overview' },
         { kind:'web', label:'站内「错误选择→测量→纠正」故事模板（portfolio 板块）', url:'#portfolio' }
       ] }
   ],

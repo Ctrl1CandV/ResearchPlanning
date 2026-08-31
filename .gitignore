@@ -6,3 +6,5 @@ node_modules/
 *.log
 _tmp*
 _shots/
+
+.zcode/
