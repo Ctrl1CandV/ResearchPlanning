@@ -4,7 +4,7 @@
 
 - 站点入口：`site/index.html`，双击即可打开（`file://`），也可用任意静态服务器。
 - 技术栈：原生 HTML/CSS/JS，**零依赖、无构建、无网络请求**。
-- 数据修订至 2026-08-28（招聘快照数据仍为 2026-07-28 抓取）。三轮修订：① 北京中转政策、论文主线转向、作品集对齐真实仓库、本地 PDF 阅读库；② 阅读页重构为「公共必读 + 方向路线」、工具链缩编为速查卡（方法论移交 grad-companion 插件）、求职资产降级为方向参考、技能路线补学习参考；③ 2026-08-30 学习层两级 IA（依据 [LEARNING-IA-DESIGN.md](../LEARNING-IA-DESIGN.md)，已审查放行）：阅读/技能页改为「L1 目录 + L2 路线」，论文按 tier 分层，Oblivion 去重，技能侧修 LangChain 链与 6.5840 标签。
+- 数据修订至 2026-08-28（招聘快照数据仍为 2026-07-28 抓取）。五轮修订：① 北京中转政策、论文主线转向、作品集对齐真实仓库、本地 PDF 阅读库；② 阅读页重构为「公共必读 + 方向路线」、工具链缩编为速查卡（方法论移交 grad-companion 插件）、求职资产降级为方向参考、技能路线补学习参考；③ 2026-08-30 学习层两级 IA（原设计文档已删，规则并入本手册 §2/§6）：阅读/技能页改为「L1 目录 + L2 路线」，论文按 tier 分层，Oblivion 去重，技能侧修 LangChain 链与 6.5840 标签；④ 2026-08-31 论文 L3 阅读卡（[PAPER-DEEP-READ-DESIGN.md](../docs/PAPER-DEEP-READ-DESIGN.md)，已审查放行并实施）：`#reading/<层级>/<ax>` 每篇论文一张卡，本地 PDF 库移除、原文改 arXiv 双外链，死链 `pdf:true` 全清；⑤ 2026-08-31 全站文案去 AI 味：data 七个文件与 app/l3 的展示文案全部改写成自然口语，句子结构、字段名、数字、颜色纪律、localStorage key 都没动；写作守则登记在 §9.12，完整经验文档在本地 `docs/AI味排查与改写守则.md`（docs/ 已 gitignore，不入仓库）。
 
 ---
 
@@ -15,11 +15,12 @@ site/
 ├── index.html          页面骨架、导航、脚本加载顺序
 ├── assets/
 │   ├── style.css       全部样式（设计令牌 + 组件 + 响应式 + 打印）
+│   ├── l3.js           L3 论文阅读卡渲染器（window.L3；含与 app.js 平行的最小工具集）
 │   └── app.js          渲染器、路由、搜索、筛选、会话状态
-├── papers/             47 篇必读论文的本地 PDF（<arXiv id>.pdf，约 122 MB）
 └── data/
     ├── facts.js        window.DATA       现实基线（导师、制度、校企、就业）
     ├── research.js     window.RESEARCH   研究主线、公共/方向阅读清单、90 天计划
+    ├── papers.js       window.PAPERS_BY_AX  L3 阅读卡（主键 arXiv id；深读卡/速览卡）
     ├── tools.js        window.TOOLS      工具速查卡（方法论已移交插件）
     ├── jobs.js         window.JOBS       招聘快照、岗位、实习阶梯、待核验
     ├── skills.js       window.SKILLS     技能信号、学习路线（含学习参考）
@@ -30,13 +31,13 @@ site/
 
 ### 脚本加载顺序（不可颠倒）
 
-`index.html` 底部按此顺序加载，六个数据文件必须在 `app.js` 之前：
+`index.html` 底部按此顺序加载，七个数据文件与 l3.js 必须在 `app.js` 之前：
 
 ```
-facts → research → tools → jobs → skills → portfolio → app
+facts → research → tools → jobs → skills → portfolio → papers → l3 → app
 ```
 
-数据文件之间没有依赖，彼此顺序可换；但 `app.js` 必须最后。
+数据文件之间没有依赖，彼此顺序可换（papers 需在 app 之前）；l3.js 只依赖 RESEARCH/PAPERS_BY_AX/SKILLS，app.js 依赖 l3 暴露的 `window.L3`。
 
 ---
 
@@ -47,10 +48,10 @@ facts → research → tools → jobs → skills → portfolio → app
 - **不用框架、不用打包**：这是一份要用三年的个人决策文档。任何构建链在三年后都可能装不起来，而 `file://` 双击永远能打开。
 - **用经典脚本 + 全局变量，不用 ES module**：`file://` 下 ES module 会被 CORS 拦截，直接双击就白屏。
 - **不把 `.jobs/baidu.json`（2.26 MB，1287 条）放进页面**：站点只存可复算的聚合数字和 14 个代表岗位。原始数据留在 `.jobs/` 供复核。
-- **PDF 直接放进 `site/papers/` 而不是外链**：阅读主线上「能立刻打开就开始读」是硬需求，arXiv 外链需要网络且页面会跳走。代价是仓库增重约 122 MB——相对「三年可离线使用」是值得的。新增本地 PDF 时文件名必须是 `<arXiv id>.pdf`（渲染层按此约定生成链接），下载后校验文件头为 `%PDF`。
-- **方法论不留在站里，归档进插件**：2026-08-28 起工具链页缩编为速查卡；三遍读法、实验纪律、写作投稿、伦理红线等完整方法论放在 `D:\Program Project\grad-companion\docs\RESEARCH-PLAYBOOK.md`（只新增文件、不改插件现有结构）。站内 `TOOLS` 只保留 core 速查、companion 指引与 monthly 清单。
+- **原文走 arXiv 双外链，不存本地 PDF（2026-08-31 起）**：每篇论文的原文入口是阅读卡页头的 `arxiv.org/abs/<ax>` 与 `arxiv.org/html/<ax>`（LaTeXML 在线版，细读标注的章节锚点指向它）。本地 47 篇 PDF 已移除——离线阅读不再是硬需求，仓库减重约 122 MB。**不要恢复 `site/papers/`**，也不要在新数据里写 `pdf:true`（渲染层已无此分支，`scripts/papers-check.js` 会把残留标记当失败）。
+- **方法论不在站外归档**：文献漏斗与切片按 grad-companion 插件的 `grad-radar` skill 执行；逐篇论文的「读哪里、怎么读」由 L3 阅读卡承接（细读标注 + 盘问问题）。旧 `RESEARCH-PLAYBOOK.md` 的 D 盘路径已核实不存在，全部引用已清除，不要再写死个人盘路径。
 - **状态已持久化（2026-08-29 起）**：勾选/主题/阅读方向经 localStorage 保存在本机（键与降级策略见第 7 节）；筛选器仍是会话态。数据都带稳定 `id`，**不要改 id 命名规则**，否则已保存的勾选会失效。
-- **学习层是「目录 + 路线」两级（2026-08-30 起）**：`#reading` / `#skills` 是目录（L1），`#reading/common|A—F` 与 `#skills/<技能id>` 是单对象学习路线（L2）。L1 不再渲染 13 篇论文全文墙与 13 张技能大卡的完整字段；90 天 12 周条 + 「本周」卡是阅读 L1 的时间脊柱。L2 未知第二段回退本 L1（不跳仪表盘、不报错）。本条取代路线层方案（ROUTE-REFACTOR-PLAN.md）4.3 的「公共必读区不动」。
+- **学习层是「目录 + 路线 + 阅读卡」三级（2026-08-30 起两级，2026-08-31 起三级）**：`#reading` / `#skills` 是目录（L1）；`#reading/common|A—F` 与 `#skills/<技能id>` 是单对象学习路线（L2）；`#reading/<层级>/<ax>` 是单篇论文的 L3 阅读卡。L1 不渲染论文全文墙与技能大卡全字段；L2 论文行即 L3 入口。**逐级回退**：非法第三段回退 L2，非法第二段回退 L1（不跳仪表盘、不报错）。原「两级」方案的裁定历史见 PAPER-DEEP-READ-DESIGN.md §1.2。
 
 ---
 
@@ -109,7 +110,7 @@ facts → research → tools → jobs → skills → portfolio → app
 { id, name, priority, domain, target, deadline, deliverable, status,
   note,                                            // 可选：技能 L2 的「边界说明」callout（当前 skill-eval / skill-graphdb）
   refs: [{ kind: 'book'|'web'|'paper', label, url, local?, tier? }] }
-// refs.tier = 'extend' 表示延伸资料（技能 L2 折叠展示，不进学习步骤）；local=<ax> 指向 site/papers/<ax>.pdf
+// refs.tier = 'extend' 表示延伸资料（技能 L2 折叠展示，不进学习步骤）；local=<ax> 指向该论文的 L3 阅读卡（站内跨路由链接）
 
 // RESEARCH.reading —— 「公共必读 + 方向私有路线」两层结构
 reading: {
@@ -124,10 +125,16 @@ reading: {
 
 // 论文条目（common.items 与 tracks.papers 通用；注意 common 用 items、方向用 papers）
 // t=标题 ax=arXiv y=年月 v=venue c=引用量 h=预计工时 why=为什么读
-// 可选：key=必精读  warn=撞方向  pdf=true（site/papers/<ax>.pdf 已存在）
+// 可选：key=必精读  warn=撞方向
 //       tier：缺省=主路径；'prereq'=选本方向的前置（当前仅 D）；'extend'=延伸（L2 折叠，不进 90 天主路径）
 // common 层另有 n=序号（1—13，L2 分段与工时合计依赖它）与 intro=两三句扩充介绍
-{ t, ax, y, v, c, h, why, pdf }
+{ t, ax, y, v, c, h, why }
+
+// window.PAPERS_BY_AX（data/papers.js）—— L3 阅读卡，主键 = arXiv id；research.js 是归属事实源
+// 深读卡：{ level, tldr, sections[{k,t,s,a?}], must[{k,act:'deep'|'scan'|'skip',why,a?}], slices[]?, link{week?,skills[]}?, quiz[], unread{read[],notRead[],source,at} }
+//   unread.source ∈ arxiv_html（当次抓取）/ knowledge（模型既有知识，未当次抓取）/ abstract（仅摘要级，sections 可为空）
+// 速览卡（延伸篇专用）：{ level, skim: { whySkim, whenBack } }
+// 无卡论文渲染「阅读卡待生成」降级页；契约由 npm run papers:check 把关（覆盖率口径见脚本头注释）
 
 // RESEARCH.angles[].scores —— 六维评分（2026-08 换标尺，旧版 fit/novel/cheap/first/safe 已废弃）
 { value, novelty, falsifiable, feasible, resource, career }   // value 为 1-5 整数
@@ -211,7 +218,7 @@ reading: {
 
 **加一个代表岗位**：在 `JOBS.teams` 末尾追加一条，`id` 全站唯一，枚举照第 4 节填。筛选器和搜索会自动收录，无需改 `app.js`。
 
-**加一篇论文**：在 `RESEARCH.reading.<层级>.items`（common）或 `tracks.<方向>.papers`（方向）追加。**一篇只归一处**：跨方向复用就在目标方向 `note` 里写「见方向 X」，绝不复制条目（2026-08-30 已按此把 Oblivion 从 C 删除，只留 F）。主路径与延伸用 `tier` 表达——降级写 `tier:'extend'`，**不要从数据里删除**，防止重新发明。**如果只在正文里提 arXiv 编号（比如 90 天计划、风险说明），必须同时把它加进阅读清单或数据集列表**，否则就成了站点自己禁止的「未核验引文」。要加本地 PDF 时：先实际下载到 `site/papers/<ax>.pdf` 并校验文件头为 `%PDF`，**下载成功才写 `pdf:true`**——渲染层按 `papers/<ax>.pdf` 生成链接，标了没有文件就是死链。
+**加一篇论文**：在 `RESEARCH.reading.<层级>.items`（common）或 `tracks.<方向>.papers`（方向）追加。**一篇只归一处**：跨方向复用就在目标方向 `note` 里写「见方向 X」，绝不复制条目（2026-08-30 已按此把 Oblivion 从 C 删除，只留 F）。主路径与延伸用 `tier` 表达——降级写 `tier:'extend'`，**不要从数据里删除**，防止重新发明。**如果只在正文里提 arXiv 编号（比如 90 天计划、风险说明），必须同时把它加进阅读清单或数据集列表**，否则就成了站点自己禁止的「未核验引文」。同时决定阅读卡：主路径论文在 `papers.js` 补深读卡（流程与诚实标注见 PAPER-DEEP-READ-DESIGN.md §7），暂不补则该篇在 L3 显示「阅读卡待生成」降级页（`npm run papers:check` 的批 2 覆盖率行会提示）。
 
 **新增待核验项**：追加到 `JOBS.verification`，`impact` 决定排序权重。
 
@@ -230,12 +237,15 @@ reading: {
 `app.js` 是一个 IIFE，结构为「工具函数 → 组件 → 十个页面 → 状态与事件」。
 
 - **路由**：`location.hash`，未知 hash 回退到 `dashboard`。
-- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / pageSummary（要点块，读各模块 summary 字段）/ timeline / checkList / filterGroup / claimBadge / evidenceBadge / renderNowCard + currentPhase + phaseActions（仪表盘阶段感知，里程碑常量在渲染器顶部，每年复核）/ renderProgress（三条进度线）/ renderRoadmapSpine（三年主路线图）/ renderWeekStrip（90 天 12 周条）/ renderCurrentWeekCard（阅读 L1 的「本周」卡，读/做/产出三行，arXiv id 自动链接）/ commonStageFlow（公共必读三步分段，从 note 派生）/ renderCommonCatalog + renderTrackCatalog（阅读 L1 目录卡）/ renderReadingL2（阅读 L2 单方向路线页，十块骨架）/ renderSkills（技能 L1 目录卡，P0 置顶）/ renderSkillL2（技能 L2 学习路线页，八块骨架）/ l2Head + crumb（L2 面包屑与页头）/ l2PaperRows（L2 论文行：默认一行，intro/出处/徽章折叠进 details.lp-more）/ linkAx + paperHome（自由文本里的 arXiv id 自动链到所属 L2，锚点 paper-<ax>）/ stepItem（技能学习步骤；paper+local 自动链回所属阅读 L2 并标注「公共必读第 N 篇/方向 X」，不复制论文条目）/ renderTrackCard（已删除：方向全文下沉到 L2）/ skillRefs（已删除：学习参考改为 stepItem）`。
-- **details() 第 5 参 `ref`（档案层降噪）**：`details(title, body, open, right, ref=true)` 渲染 `acc ref`，summary 字号/颜色弱化一档。**只加在档案类折叠块**（实验室/就业档案/口径/饱和/竞争/信号矩阵/见导师材料等），执行层折叠（90 天 Phase、公共必读进度、方法草案）不加——路线突出原则见 ROUTE-REFACTOR-PLAN.md。
+- **组件**：`card / stat / badge / callout / table / kv / list / tags / details / section / pageSummary（要点块，读各模块 summary 字段）/ timeline / checkList / filterGroup / claimBadge / evidenceBadge / renderNowCard + currentPhase + phaseActions（仪表盘阶段感知，里程碑常量在渲染器顶部，每年复核）/ renderProgress（三条进度线）/ renderRoadmapSpine（三年主路线图）/ renderWeekStrip（90 天 12 周条）/ renderCurrentWeekCard（阅读 L1 的「本周」卡，读/做/产出三行，arXiv id 自动链接）/ commonStageFlow（公共必读三步分段，从 note 派生）/ renderCommonCatalog + renderTrackCatalog（阅读 L1 目录卡）/ renderReadingL2（阅读 L2 单方向路线页，十块骨架）/ renderSkills（技能 L1 目录卡，P0 置顶）/ renderSkillL2（技能 L2 学习路线页，八块骨架）/ l2Head + crumb（L2 面包屑与页头）/ l2PaperRows（L2 论文行：一行 = 序号/勾选/标题/原文外链/工时/why，行本身带 data-goto 进 L3）/ linkAx + paperHome（自由文本里的 arXiv id 自动链到 L3 阅读卡）/ stepItem（技能学习步骤；paper+local 自动链回 L3 阅读卡并标注「公共必读第 N 篇/方向 X」，不复制论文条目）/ renderTrackCard（已删除：方向全文下沉到 L2）/ skillRefs（已删除：学习参考改为 stepItem）`。
+- **L3 渲染器（assets/l3.js）**：`window.L3.render(level, ax, ctx)` 返回阅读卡 HTML，`window.L3.hasPaper(level, ax)` 供 `render()` 分发校验。深读卡十块 / 速览卡五块 / 无卡降级页三种形态，骨架顺序在渲染器里写死。**l3.js 内有 escapeHtml/badge/section 等最小工具集与 app.js 各一份**（app.js 是 IIFE，内部不可见）——两处行为必须一致，改动需双处同步；新增全局常量（trackShort、ROUTE_NO 等）同样双份。
+- **details() 第 5 参 `ref`（档案层降噪）**：`details(title, body, open, right, ref=true)` 渲染 `acc ref`，summary 字号/颜色弱化一档。**只加在档案类折叠块**（实验室/就业档案/口径/饱和/竞争/信号矩阵/见导师材料等），执行层折叠（90 天 Phase、公共必读进度、方法草案）不加——路线突出原则：阶梯、路线与周条永远排在档案折叠之前，执行层信息不折叠进背景噪音。
 - **顶栏当前位置 chip**：`index.html` 的 `#phase-chip` 在每次渲染时由 `updatePhaseChip()` 填充（当前阶段名 + 开学后的周次）；元素缺失（如桩环境）静默跳过。原「进度保存在本机」文案保留在侧栏页脚。
 - **信息分层约定（2026-08-29 起）**：页面内容分「要点层（pageSummary，永远可见）/ 执行层（默认展开）/ 证据层（默认折叠进 `details`）」。改内容时保持这个分层：情报类（饱和、竞争、口径、信号矩阵、就业档案）默认折叠，执行类（清单、路线、阶梯、学习路线）默认展开。折叠标题要自带信息量（名称 + 条数）。
-- **学习层两级路由（2026-08-30 起）**：`render()` 先取 hash 第一段选 L1 渲染器；`reading` 与 `skills` 再读第二段——`READING_L2[sub]`（common/A—F）与 `skillById(sub)` 命中才渲染 L2，**非法第二段回退 L1**。L2 打开方向时同步 `state.track` 并写回 `rp.track`（URL 是事实源，不依赖 chip）。搜索索引的论文条目指向 `reading/<层>`，技能路线条目指向 `skills/<id>`（`crumb` 字段存结果卡左上角的来源标签）。
-- **跨路由锚点（pendingAnchor）**：`data-anchor` 的目标不在当前 DOM 时（L2 周chip → L1 周条目、技能步骤 → 论文锚点、plan90 正文里的 arXiv id → 论文行），先记下锚点再切 hash；`render()` 末尾滚动到位并展开所在 `details`。锚点 id 一律 `paper-<ax>` / `week-item-<Wx>`，**不要带 `/`**（会撞路由解析）。
+- **学习层三级路由（2026-08-31 起）**：`render()` 先取 hash 第一段选 L1 渲染器；`reading` 与 `skills` 再读第二段——`READING_L2[sub]`（common/A—F）与 `skillById(sub)` 命中才渲染 L2，**非法第二段回退 L1**；`reading` 还有第三段 `#reading/<层级>/<ax>`——`window.L3.hasPaper(sub, ax)` 命中才渲染 L3 阅读卡（同时同步 `state.track` 并写回 `rp.track`），**非法第三段回退 L2**。L2 打开方向时同步 `state.track` 并写回 `rp.track`（URL 是事实源，不依赖 chip）。搜索索引的论文条目直达 `reading/<层级>/<ax>`，技能路线条目指向 `skills/<id>`（`crumb` 字段存结果卡左上角的来源标签）。
+- **跨路由锚点（pendingAnchor）**：`data-anchor` 的目标不在当前 DOM 时（L2 周chip → L1 周条目、L3 接口块的周 chip → 周条目），先记下锚点再切 hash；`render()` 末尾滚动到位并展开所在 `details`。锚点 id 一律 `paper-<ax>` / `week-item-<Wx>`，**不要带 `/`**（会撞路由解析）。论文间的跳转已改直连 L3 路由（linkAx/stepItem），不再走锚点；`paper-<ax>` 作为 L2 行的结构 id 保留（无 JS 消费者，供校验与调试）。
+- **勾选/筛选重渲染的焦点恢复**：`render(true)` 会先记录 `document.activeElement` 的 `data-check-id`，渲染后在对应勾选框上 `focus({preventScroll:true})` 归位——键盘连续勾选不因节点重建而丢焦点。
+- **整块可点的键盘可达**：`[data-goto]` 块若带 `tabindex="0"`（当前是 L2 论文行），`bindPageEvents` 同时绑定 Enter/Space 触发；焦点落在行内控件（勾选框/外链）时不劫持。
 - **目录卡整卡可点**：L1 目录卡带 `data-goto`（阅读方向卡用 `<a>` 原生跳转，技能卡用 div + data-goto）；点击落到 `a/button/label/input/summary/details` 上时让默认行为接管（保护勾选框）。
 - **jobs 页 section 顺序**：地域约束 → 实习阶梯 → 岗位族 → 岗位样本 → 时间线 → 口径(折叠) → 数据边界(折叠)。阶梯在样本之前是刻意的（研一核心是阶梯不是目标地图），调整顺序前先想清楚。
 - **verify 页渲染按 impact 排序**（critical → high → medium），数据顺序不动。
@@ -322,7 +332,7 @@ v2 在 v1 令牌体系上叠加了四个签名元素，改样式时不要无意�
 | `rp.theme` | `'light'` / `'dark'` |
 | `rp.track` | 阅读页方向选择（A—F） |
 
-`state.checks` 存的就是各条目的稳定 `id`（`paper-common-*` / `paper-<方向>-*` / `week-*` / `ap-*` / `atlas-*` / `cg-*` / `verify-*` / `monthly-*` / 技能 id）。读写全部走 `storeGet/storeSet/storeDel` 的 try/catch——**`file://` 下部分浏览器限制 localStorage，异常时静默降级为会话态**，不要把存储异常抛到页面上。侧栏的「重置进度」按钮清空 `rp.checks`。
+`state.checks` 存的就是各条目的稳定 `id`（`paper-common-*` / `paper-<方向>-*` / `paper-quiz-<ax>`（L3 盘问自测，2026-08-31 起）/ `week-*` / `ap-*` / `atlas-*` / `cg-*` / `verify-*` / `monthly-*` / 技能 id）。读写全部走 `storeGet/storeSet/storeDel` 的 try/catch——**`file://` 下部分浏览器限制 localStorage，异常时静默降级为会话态**，不要把存储异常抛到页面上。侧栏的「重置进度」按钮清空 `rp.checks`。
 
 **不要改 id 命名规则**，否则已保存的勾选记录会全部失效。仪表盘「进度总览」三条线（公共必读 x/13、90 天 y/12、核验 z/12）直接从 `state.checks` 计数，与持久化同批上线——若回滚持久化，务必同时摘掉进度卡，避免出现恒为 0 的空条。阅读 L2 的方向论文行与技能步骤如需逐项勾选，**必须新增 id**（如 `skill-eval-step-1`），禁止复用现有技能 id；当前实现未加单步勾选。
 
@@ -354,28 +364,21 @@ console.log(a.filter(want).length, a.filter(r=>want(r)&&t(r)).length,
 a.filter(r=>bj(r)&&!want(r)).length, a.filter(r=>bj(r)&&!want(r)&&t(r)).length,
 a.filter(r=>bj(r)||want(r)).length, a.filter(r=>(bj(r)||want(r))&&t(r)).length)'
 
-# 4) 本地 PDF 库核对（改动 reading / skills 的 pdf 与 local 标记后必做）
-#    输出的两个数字必须相等；不等就是有死链或漏标（孤儿文件同样要清）
-node -e 'const fs=require("fs");
-function load(p){const w={};new Function("window","with(window){"+fs.readFileSync(p,"utf8")+"}")(w);return w;}
-const R=load("site/data/research.js").RESEARCH;
-const flagged=new Set();
-R.reading.common.items.forEach(p=>{if(p.pdf)flagged.add(p.ax)});
-Object.keys(R.reading.tracks).forEach(t=>R.reading.tracks[t].papers.forEach(p=>{if(p.pdf)flagged.add(p.ax)}));
-const files=fs.readdirSync("site/papers").filter(f=>f.endsWith(".pdf")).map(f=>f.replace(".pdf",""));
-console.log("标记 pdf 的论文数:",flagged.size,"实际文件数:",files.length);
-console.log("死链:",[...flagged].filter(a=>!files.includes(a)));
-console.log("孤儿:",files.filter(f=>!flagged.has(f)))'
+# 4) 论文数据契约（改动 reading / papers.js 后必做；也可直接跑 npm run verify 一并覆盖）
+node scripts/papers-check.js
+#    断言：总数 70 / 分段计数 / ax 唯一 / 全部有 ax / pdf:true 残留为 0；
+#    papers.js 键合法且 level 与归属一致、深读卡必填字段、速览卡两字段；
+#    公共 13 深读卡 + 延伸 17 速览卡为硬性；批 2 主路径覆盖率仅报告（--strict 可收紧）
 ```
 
 4) 浏览器冒烟：双击 `site/index.html`，逐一点开十个导航项，确认 F12 控制台无红色报错、页面无 `undefined`。
-   也可以先跑无头版快速回归：`node scripts/render-smoke.js`——十个一级路由 + 阅读/技能 L2（hash 第二段）+ 非法第二段回退 L1 的样例，全部 PASS 即基本可用；
+   也可以先跑无头版快速回归：`node scripts/render-smoke.js`——十个一级路由 + 阅读/技能 L2 + 论文 L3 阅读卡（深读/速览/无卡降级/非法第三段回退）样例，全部 PASS 即基本可用；
    阶段感知回归（三个模拟日期的阶段名/周次/行动切换）：`node scripts/phase-smoke.js`。
    阶段里程碑常量在 `app.js` 的 `PHASES`（依据 timeline 与阶梯节奏，**每年复核**）。
-5) 交互：阅读 L1 点公共必读卡与任一方向卡进入 L2，确认十块骨架齐全（面包屑/定位/阶段路线/[前置]/必读/资产/90天接口/相关技能/[延伸]/提示）；点 L2 的周 chip 与技能 chip 确认跨路由跳转并滚动到位；技能 L1 点任一目录卡进入 L2，看学习步骤（链回阅读 L2 的要能跳）与面试接口；岗位/技能的筛选（含组合筛选与空态）、勾一个清单看进度是否变化、搜一个论文关键词确认结果指向 L2、切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
+5) 交互：阅读 L1 点公共必读卡与任一方向卡进入 L2；点 L2 任一论文行进入 L3 阅读卡（键盘 Tab 到论文行按 Enter 也应进入），确认深读卡十块齐全（面包屑/原文双外链/定位/总览/逐节摘要/细读标注/接口/盘问/勾选/未读声明），延伸篇显示速览卡、无卡论文显示「阅读卡待生成」；点 L2 的周 chip 与技能 chip 确认跨路由跳转并滚动到位；L3 的 上一篇/下一篇/返回 循环正确；勾选一个论文行进 L3 看状态同步、刷新后保留；勾一个清单看进度是否变化、勾选后焦点不丢；搜一个论文关键词确认结果直达 L3；连续勾选多个复选框确认键盘焦点不丢；切主题、窄窗口试移动侧栏（遮罩 / Esc / 点导航后自动收起）。
 6) **地域顺序抽查**：打开 `#jobs`，确认页面第一屏是「地域约束」而不是百度快照；确认就业阶段顺序为 杭州 → 上海 → 深圳 → 广州 → 北京（中转）；确认北京卡片是琥珀色「中转可接受 · 1—2 年跳板」（不再是红色「不投递」），城市分布图里北京在「中转城市」分组。
-7) **PDF 库抽查**：打开 `#reading/common`（或任一方向 L2），任选一条带「📄 PDF」的论文点击，确认能在新窗口打开本地 PDF；把 `site/papers/` 整个改名后再刷新页面，确认链接变成死链（说明链接确实指向本地文件而非外链），改回原名。
-8) **两级 IA 抽查**：打开 `#reading`，确认首屏没有 13 篇论文全文（全文只在 L2）；打开 `#reading/ZZZ` 与 `#skills/nope`，确认回退到对应 L1 而不是报错或跳仪表盘；勾选一个 L2 论文行后刷新，确认进度保留（id 未变）。
+7) **原文外链抽查**：打开 `#reading/common`，任选一条论文行点「↗ <ax>」确认新窗口打开 arXiv abs；进入其 L3 阅读卡点「arXiv HTML（LaTeXML）」确认在线版可达；抽取一篇细读标注核对章节号与 HTML 版一致（在线不可达时如实标注，不猜）。
+8) **三级 IA 抽查**：打开 `#reading`，确认首屏没有 13 篇论文全文（导读只在 L3）；打开 `#reading/ZZZ`、`#skills/nope`、`#reading/A/9999.00000`、`#reading/common/2303.17760`，确认逐级回退（L3 非法→L2、L2 非法→L1）而不是报错或跳仪表盘；勾选一个 L2 论文行后刷新，确认进度保留（id 未变）。
 
 ---
 
@@ -390,10 +393,11 @@ console.log("孤儿:",files.filter(f=>!flagged.has(f)))'
 5. **作品集数字必须可追溯**：Atlas 的 542 测试 / 361s / $0.01 与 AgentParliament 的 6/6 来自仓库 README 与实测记录，可以写；但 n=1 必须标 `preliminary`，四个核心指标未实测前保持 `null`——**绝不把目标值冒充成果**。
 6. **引用前核对标题/作者/venue/年份/DOI**，无法核实就不写进站点。公共层 13 篇与各方向卡论文全部经 arXiv API 逐条反查确认；后续新增同样照此办理。
 7. **简历主标签不用 GraphRAG**（当前样本零命中），用 Agent Evaluation / Reliability / Observability / Harness / Memory。这不代表技术无价值，只是不适合 ATS 检索。
-8. **本地 PDF 只收「必读与直接对手」**：47 篇已是上限量级（122 MB）。泛读论文保持 arXiv 外链，不要把整个文献库搬进仓库。
+8. **原文不入库（2026-08-31 起）**：本地 PDF 库已移除，不要恢复 `site/papers/`，也不要在新数据写 `pdf:true`。原文经阅读卡的 arXiv 双外链打开；阅读卡内容按 PAPER-DEEP-READ-DESIGN.md §7 的诚实标注生成（`unread.source` 声明来源，未读部分明示），泛读论文保持速览卡，不要为「看起来完整」把没读过的论文写成深读卡。
 9. **页面定位要写明「何时失效」**：求职资产页是方向参考（2027.12 重做）、岗位页重点是实习、工具页是速查卡——每处降级都要在页首 callout 写清定位与重做时点，防止三年后把过时内容当成现行事实。
 10. **阅读页分层纪律**：一篇论文只归一处（公共层或某一个方向），跨方向复用就在方向卡的 note 里写「引用公共层第 N 篇」，不要复制条目。2026-08-30 复核后全库唯一例外已清除（Oblivion 只在 F）。
 11. **延伸与前置不删数据**：降级的论文 / 学习资料用 `tier:'extend'`、方向前置用 `tier:'prereq'` 留在数据里（L2 折叠展示），只有跨方向重复必须物理删除。「哪些论文重要」以 L2 主列表为准，不要看数据文件的书写顺序。
+12. **展示文案说人话（2026-08-31 起）**：站内所有会渲染出来的文字必须写成有主语有动词的完整句子，不堆自造名词短语。硬规则：破折号每页最多一处；「不是 A 而是 B」只在真需要划界时用；自造概念先解释再使用，同一段不超过一个新词；UI 标签用用户此刻心里的话（勾选框写「这周验收完成」不写「本周验收完成」）；每个结论要接得住一个「因为」。行业通用词（baseline、ablation、reliability@k 等）不算 AI 味，保留。改文案前先读本地 `docs/AI味排查与改写守则.md`（不入仓库，丢了就从 §9.12 硬规则重建）。新增阅读卡（批 2）直接按此写，不要先写黑话版再回炉。
 
 ---
 
@@ -405,4 +409,5 @@ console.log("孤儿:",files.filter(f=>!flagged.has(f)))'
 - **`tools.js` 证据等级低于其他板块**：基于既有知识整理，未逐条检索核实。工具免费额度与期刊 AI 政策变化快，投稿前务必回到目标期刊的 Guide for Authors 原文确认。
 - **导师支持新主线是口头结论（2026-08）**：属于一手但未经书面确认的信息，已按此修订选题策略；若后续沟通出现变化，先改 `facts.js` 第四条纠正与 `research.js` 的切口排序，再动其他板块。
 - **切口 A–E 的引用多为 2026 年预印本**：venue 标注以 arXiv comment 为准（如 FAGEN@ICML 2026、Interaction Tax = ICML 2026），部分论文后续正式发表信息可能更新，引用前按第 9 节纪律复核。
-- **arXiv 在线反查缺口（2026-08-30）**：本轮两级 IA 实施期间 `export.arxiv.org` 连接被重置，76 个唯一 id 未能在本轮重做在线反查（2026-08-28 那轮已反查过；本地 47 篇 PDF 的 /Title 与数据核对一致）。网络可用时按第 9.6 条补一轮。技能侧 LangChain 文档已换到 `docs.langchain.com` 新址，MIT 课程号已改为 6.5840（URL 沿用旧路径，仍可达）。
+- **arXiv 在线反查缺口（2026-08-30）**：两级 IA 实施期间 `export.arxiv.org` 连接被重置，76 个唯一 id 未能在本轮重做在线反查（2026-08-28 那轮已反查过）。网络可用时按第 9.6 条补一轮。技能侧 LangChain 文档已换到 `docs.langchain.com` 新址，MIT 课程号已改为 6.5840（URL 沿用旧路径，仍可达）。
+- **L3 阅读卡的内容来源限制（2026-08-31）**：批 1 深读卡 12 篇为 `knowledge`（模型既有知识转写，未当次在线抓取核验），2606.09863 为 `abstract`（站点收录的摘要级信息，章节结构未核验）；在线核验或 grad-radar 抓取后应升级为 `arxiv_html` 并补切片。批 2（主路径 37 篇深读卡）未生成，L3 显示降级页。`npm run papers:check` 会持续把关契约与覆盖。

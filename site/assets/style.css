@@ -1057,8 +1057,8 @@ body.light .mx-card .mx-tag { color: #fff; }
 .paper .pid a { color: var(--accent); }
 .paper .pb { flex: 1; min-width: 0; }
 .paper .pt { font-size: 13.5px; font-weight: 570; line-height: 1.55; }
-/* 本地 PDF 链接：站点自带 site/papers/ 下的论文全文 */
-.pdf-link {
+/* 原文外链：论文行/L3 页头指向 arXiv abs（本站不存 PDF，PAPER-DEEP-READ-DESIGN.md §9.1） */
+.src-link {
   display: inline-block;
   margin-left: 8px;
   padding: 1px 7px;
@@ -1071,11 +1071,12 @@ body.light .mx-card .mx-tag { color: #fff; }
   border-radius: 999px;
   vertical-align: 1px;
   white-space: nowrap;
+  text-decoration: none;
 }
-.pdf-link:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.src-link:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); text-decoration: none; }
 
-/* 论文简介（公共必读层的扩充介绍，显示在 why 之上） */
-.paper .p-intro { display: block; color: var(--text-soft); margin-bottom: 4px; }
+/* 论文简介（L3 阅读卡「为什么读这篇」块复用） */
+.paper .p-intro, .l3-loc .p-intro { display: block; color: var(--text-soft); margin-bottom: 4px; }
 
 /* ── 方向路线卡（阅读页「公共 + 私有」结构） ── */
 .track-card { margin-top: 10px; }
@@ -1121,8 +1122,8 @@ body.light .mx-card .mx-tag { color: #fff; }
 .stage-body b { display: block; font-size: 12.5px; margin-bottom: 3px; }
 .stage-body p { margin: 0; font-size: 12px; color: var(--text-soft); line-height: 1.6; }
 
-/* 学习参考（技能页 roadmap 卡内） */
-.ref-list { margin: 6px 0 10px; display: flex; flex-direction: column; gap: 5px; }
+/* 学习参考（技能页 roadmap 卡内；延伸资料容器是 ul，去掉默认列表标记） */
+.ref-list { margin: 6px 0 10px; display: flex; flex-direction: column; gap: 5px; list-style: none; padding-left: 0; }
 .ref-item { font-size: 12.5px; color: var(--text-soft); }
 .ref-item a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
 .ref-item a:hover { border-bottom-color: var(--accent); }
@@ -1685,7 +1686,7 @@ details.acc.ref > summary {
 }
 details.acc.ref > summary::before { border-left-color: var(--text-faint); }
 
-/* ─────────────── 学习层两级 IA（2026-08-30，LEARNING-IA-DESIGN.md） ───────────────
+/* ─────────────── 学习层三级 IA（2026-08-30 两级，2026-08-31 起 L3 扩展，见 PAPER-DEEP-READ-DESIGN.md） ───────────────
    L1 目录卡 / L2 面包屑与论文行 / 技能学习步骤。只复用现有令牌，不新增颜色。 */
 
 .crumb {
@@ -1726,10 +1727,13 @@ a.cat-card { display: block; color: inherit; text-decoration: none; }
 .cat-pitch { margin: 4px 0 10px; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
 .cat-go { font: 600 11.5px var(--mono); color: var(--accent); letter-spacing: 0.4px; }
 
-/* L2 论文行：默认一行（序号/勾选/标题/PDF/工时/why），intro·出处·徽章折叠 */
+/* L2 论文行：一行 = 序号/勾选/标题/原文外链/工时/why；详情与徽章上收 L3，行本身即入口 */
 .lp-list { padding: 8px 14px; }
 .lpaper { padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
 .lpaper:last-child { border-bottom: 0; }
+.lpaper[data-goto] { cursor: pointer; transition: background .13s; border-radius: var(--radius-sm); }
+.lpaper[data-goto]:hover { background: var(--bg-card-hover); }
+.lpaper[data-goto]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lp-row { display: flex; align-items: flex-start; gap: 10px; }
 .lp-no { flex: 0 0 26px; padding-top: 2px; font: 600 12px var(--mono); color: var(--text-faint); text-align: right; }
 .lp-check { flex: 0 0 auto; padding: 0; }
@@ -1738,25 +1742,94 @@ a.cat-card { display: block; color: inherit; text-decoration: none; }
 .lp-title { font-size: 13.5px; font-weight: 570; line-height: 1.55; }
 .lp-h { margin-left: 7px; font: 11px var(--mono); color: var(--text-faint); white-space: nowrap; }
 .lp-why { margin-top: 3px; font-size: 12.5px; color: var(--text-soft); line-height: 1.6; }
-.lp-more > summary {
-  padding: 5px 0 0 36px;
-  font: 11px var(--mono);
-  color: var(--text-faint);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-.lp-more > summary::-webkit-details-marker { display: none; }
-.lp-more > summary::before { content: "▸"; margin-right: 6px; }
-.lp-more[open] > summary { color: var(--text-dim); }
-.lp-more[open] > summary::before { content: "▾"; }
-.lp-more-body { padding: 8px 0 2px 36px; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
-.lp-more-body .pv { margin: 4px 0; }
-.lp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .ax-link {
   font-family: var(--mono);
   font-size: 0.92em;
   border-bottom: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* ── L3 论文阅读卡（PAPER-DEEP-READ-DESIGN.md §5）──
+   页头复用 page-head/eyebrow 语汇但压缩标题字号（英文长标题）；正文块顺序由 l3.js 固定。 */
+.l3-head h2 { font-size: clamp(21px, 1.1vw + 15px, 27px); }
+.l3-head .lede { font-family: var(--mono); font-size: 12px; letter-spacing: .2px; }
+.l3-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -12px 0 22px;
+}
+.l3-actions .btn { text-decoration: none; }
+.l3-tldr { margin: 0; font-size: 14px; line-height: 1.75; }
+.l3-sec {
+  display: grid;
+  grid-template-columns: minmax(96px, 150px) 1fr;
+  gap: 3px 14px;
+  padding: 9px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+}
+.l3-sec:last-child { border-bottom: 0; }
+.l3-sec dt { font: 600 12px var(--mono); color: var(--accent); }
+.l3-sec dt a { color: inherit; }
+.l3-sec dd { margin: 0; font-size: 12.5px; color: var(--text-soft); line-height: 1.65; }
+.l3-must { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.l3-must li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 13px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.l3-must li.scan { border-left-color: var(--border-strong); }
+.l3-must li.skip { border-left-color: var(--text-faint); }
+.l3-must li.skip .l3-must-body { color: var(--text-dim); }
+.act {
+  flex: 0 0 auto;
+  font: 600 11px var(--mono);
+  letter-spacing: .4px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.act-deep { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 38%, transparent); background: var(--accent-glow); }
+.act-scan, .act-skip { color: var(--text-dim); border-color: var(--border-strong); background: transparent; }
+.l3-must-body { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-soft); line-height: 1.6; }
+.l3-must-body b { font: 600 12px var(--mono); color: var(--text); margin-right: 7px; }
+.l3-slice {
+  margin: 0 0 10px;
+  padding: 11px 15px;
+  background: var(--bg-inset);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+.l3-slice .where { display: block; margin-top: 6px; font: 11px var(--mono); color: var(--text-faint); }
+.l3-quiz { margin: 0 0 12px; padding-left: 22px; }
+.l3-quiz li { margin-bottom: 7px; font-size: 13.5px; color: var(--text-soft); line-height: 1.65; }
+.l3-unread { margin: 12px 0 0; line-height: 1.7; }
+.l3-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin: 28px 0 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.l3-nav .l3-nav-mid { font: 600 11.5px var(--mono); color: var(--text-faint); letter-spacing: .4px; }
+.l3-nav a.btn {
+  text-decoration: none;
+  max-width: 46%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
 }
 
 /* 技能学习步骤：refs 从资料堆变成有序步骤 */
@@ -1867,22 +1940,6 @@ a.cat-card:focus-visible {
 .crumb a { font-weight: 600; }
 .lp-list { padding: 6px 16px; }
 .lpaper { padding: 12px 2px; }
-.lp-more > summary {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  margin-top: 2px;
-  padding: 7px 8px 7px 36px;
-  border-radius: var(--radius-sm);
-  transition: color .14s, background .14s;
-}
-.lp-more > summary:hover,
-.lp-more > summary:focus-visible { background: var(--bg-card-hover); }
-.lp-more[open] > summary {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-}
-.lp-more-body { padding: 8px 8px 4px 36px; }
 .step-list { gap: 9px; }
 .step-item { padding: 12px 14px; }
 
@@ -1932,15 +1989,11 @@ a.ws-chip {
   .lp-no { width: auto; padding-top: 3px; text-align: left; }
   .lp-check .box { width: 18px; height: 18px; margin-top: 1px; }
   .lp-title { line-height: 1.6; }
-  .lp-title .pdf-link { margin: 5px 7px 0 0; }
+  .lp-title .src-link { margin: 5px 7px 0 0; }
   .lp-h { display: inline-block; margin: 5px 0 0; }
   .lp-why { margin-top: 6px; }
-  .lp-more > summary {
-    min-height: 40px;
-    margin-left: 49px;
-    padding: 8px;
-  }
-  .lp-more-body { padding: 7px 8px 4px 49px; }
+  .l3-sec { grid-template-columns: 1fr; }
+  .l3-nav a.btn { max-width: 100%; }
   .stage-flow { grid-template-columns: 1fr; }
   .step-item { gap: 9px; padding: 11px; }
 }
@@ -1953,9 +2006,7 @@ a.ws-chip {
   .sidebar, .topbar, .nav-overlay, .site-footer, .page-toc { display: none !important; }
   .main, .page { max-width: none; padding: 0; }
   #app { display: block; max-width: none; }
-  details.acc > .acc-body,
-  details.lp-more > .lp-more-body { display: block; }
-  details.lp-more > summary { display: none; }
+  details.acc > .acc-body { display: block; }
   .card, .job, .mx-card, .lpaper, .step-item { break-inside: avoid; }
   .page-head h2 { color: var(--text); -webkit-text-fill-color: var(--text); background: none; }
 }

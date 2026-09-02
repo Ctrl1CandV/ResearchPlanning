@@ -8,7 +8,8 @@
     "lint:js": "node scripts/check-syntax.js",
     "contrast": "node scripts/contrast.js",
     "recompute": "node scripts/recompute.js",
-    "verify": "npm run lint:js && npm run lint:css && npm run contrast && npm run recompute"
+    "papers:check": "node scripts/papers-check.js",
+    "verify": "npm run lint:js && npm run lint:css && npm run contrast && npm run recompute && npm run papers:check"
   },
   "devDependencies": {
     "stylelint": "16.14.1",

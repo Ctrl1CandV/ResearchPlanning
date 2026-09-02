@@ -1,6 +1,6 @@
-/* 无头渲染冒烟：加载 6 个数据文件 + app.js，逐个路由执行渲染。
+/* 无头渲染冒烟：加载 7 个数据文件 + l3.js + app.js，逐个路由执行渲染。
    用途：node scripts/render-smoke.js —— 全部路由无异常、无 "undefined" 泄漏即通过。
-   覆盖：10 个一级路由 + 阅读/技能 L2（hash 第二段）+ 非法第二段回退 L1 的样例。
+   覆盖：10 个一级路由 + 阅读/技能 L2 + 论文 L3 阅读卡（hash 第三段）+ 非法第二/三段回退的样例。
    实现说明：用间接 eval 在真实全局作用域执行（浏览器中数据与渲染器都是全局脚本），
    因此裸 DATA/RESEARCH/window/location 都能像在浏览器里一样解析。
    （真实浏览器交互仍按 MAINTENANCE.md 第 8 节手动冒烟） */
@@ -11,20 +11,30 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');   // 已从仓库根移入 scripts/，回退一层定位 site/
 const ROUTES = ['dashboard', 'baseline', 'research', 'reading', 'tools', 'jobs', 'skills', 'portfolio', 'career', 'verify'];
-// 学习层两级 IA（LEARNING-IA-DESIGN.md §11）：L2 样例 + 非法第二段必须回退 L1
+// 学习层多级路由：L2 样例 + L3 样例 + 非法第二/三段必须逐级回退（PAPER-DEEP-READ-DESIGN.md §11.1）
 const L2_ROUTES = [
   ['reading/common', 'paper-common-2005.11401'],
   ['reading/A', '方向必读'],
   ['reading/B', '延伸阅读'],
   ['reading/C', '延伸阅读'],
-  ['reading/D', '前置，不是主路径'],
+  ['reading/D', '方向前置'],
   ['reading/E', 'SWE-bench'],
   ['reading/F', '方向必读'],
   ['skills/skill-eval', '学习步骤'],
-  ['skills/skill-algo', '面试硬门槛'],
+  ['skills/skill-algo', '面试的硬门槛'],
   ['skills/skill-graphdb', '二选一'],
-  ['reading/ZZZ', '方向路线 · 选一条进入'],
-  ['skills/nope', '学习路线目录']
+  ['reading/ZZZ', '六条方向路线'],
+  ['skills/nope', '学习路线']
+];
+// L3 阅读卡：有卡（深读）/ 无卡（降级提示）/ 速览卡 / 第三段非法逐级回退
+const L3_ROUTES = [
+  ['reading/common/2005.11401', '原文里重点读这几处'],
+  ['reading/common/2606.09863', '合上论文，这几问能答上吗'],
+  ['reading/A/2606.04990', '阅读卡待生成'],
+  ['reading/B/2303.17760', '为什么现在不用细读'],
+  ['reading/A/2303.17760', '方向必读'],
+  ['reading/common/2303.17760', '分三段'],
+  ['reading/A/9999.00000', '方向必读']
 ];
 
 function makeEl() {
@@ -59,9 +69,10 @@ global.document = {
 };
 
 const run = (file) => (0, eval)(fs.readFileSync(path.join(ROOT, file), 'utf8'));
-for (const f of ['facts', 'research', 'tools', 'jobs', 'skills', 'portfolio']) {
+for (const f of ['facts', 'research', 'tools', 'jobs', 'skills', 'portfolio', 'papers']) {
   run('site/data/' + f + '.js');
 }
+run('site/assets/l3.js');
 
 let failed = 0;
 for (const r of ROUTES) {
@@ -85,7 +96,7 @@ for (const r of ROUTES) {
   else console.log('PASS', r, '(' + html.length + ' chars)');
 }
 
-for (const [r, expect] of L2_ROUTES) {
+for (const [r, expect] of L2_ROUTES.concat(L3_ROUTES)) {
   global.location.hash = '#' + r;
   appEl.innerHTML = '';
   let threw = null;

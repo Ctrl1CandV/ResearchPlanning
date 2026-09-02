@@ -70,7 +70,7 @@ const CASES = [
     expect: {
       phase: '研一上 · 90 天启动',
       weekBadge: 'W8',
-      actions: ['90 天计划 · W8', 'openEuler', '每月巡检']
+      actions: ['90 天计划 · W8', 'openEuler', '每月例行']
     }
   },
   {
@@ -78,7 +78,7 @@ const CASES = [
     expect: {
       phase: '暑期实习主投期',
       noWeekBadge: true,
-      actions: ['杭州→上海→深圳→广州', '每月巡检']
+      actions: ['杭州、上海、深圳、广州', '每月例行']
     }
   }
 ];

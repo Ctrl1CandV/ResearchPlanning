@@ -5,36 +5,36 @@ window.SKILLS = {
   meta: {
     baidu: { denominator:747, scope:'百度关键词快照中的技术岗；含工作内容和任职要求', sourceAsOf:'2026-07-28' },
     tencent: { denominator:419, scope:'腾讯关键词快照中的技术岗；只有工作内容，命中率是下限', sourceAsOf:'2026-07-28' },
-    revisedAt:'2026-08-28（信号口径不变；本次更新重点是补学习参考与主线对齐）',
-    warning:'两家公司字段完整度不同，百分比不可合并，也不应作人才供需或竞争强弱的直接证据。'
+    revisedAt:'2026-08-28（统计数据没重新抓；这次更新主要是给每条路线补学习参考）',
+    warning:'两家的字段完整度不同，百分比不能合并成一个数，也不能直接拿来排先后，更不能当成人才供需或竞争激烈程度的证据。'
   },
   /* ── 页面要点（渲染在页头下方；文案从本页现有内容提炼，勿新造结论） ── */
   summary: [
-    '双口径不可合并：百度 747 技术岗（职责+要求）与腾讯 419（仅工作内容，命中率是下限），不可直接排名对比。',
-    '学习路线是执行层：P0 五项（算法题、OS/网络/数据库基础、评测与可观测、记忆与上下文、系统设计）都有截止阶段与可验证交付物。',
-    '每条路线配「学习参考」，部分直接指向 site/papers/ 的本地 PDF，从这里开始学。',
-    '信号矩阵是调研证据：关键词存在率不等于硬要求率；GraphRAG 零命中只说明不作 ATS 主标签。'
+    '两个数字来源不能混着看：百度的 747 个技术岗同时含职责和要求；腾讯的 419 个只有工作内容一栏，算出来的命中率只能当最低值。所以两边的百分比不能合并，也不能互相排名。',
+    '学习路线是拿来执行的：P0 共五项（算法题、计算机基础、评测与可观测、记忆与上下文、系统设计），每一项都写了截止时间和交得出手的东西。',
+    '每条路线下面配了学习参考。论文的参考直接链到对应的阅读卡，原文从 arXiv 打开。',
+    '最下面的信号矩阵是调研证据，注意两个限制：JD 里出现某个关键词，不等于岗位硬性要求这项技能；GraphRAG 零命中也只说明它不适合做简历主标签，不代表相关技术没有价值。'
   ],
   signals: [
-    { id:'python', name:'Python', domain:'backend', baidu:53.7, tencent:1.7, priority:'P0', judgement:'基础门槛；腾讯字段缺失导致明显低估' },
-    { id:'cpp', name:'C++', domain:'backend', baidu:39.1, tencent:0.7, priority:'P3', judgement:'总体强信号，但与主投应用工程不完全一致' },
-    { id:'go', name:'Go', domain:'backend', baidu:29.2, tencent:1.2, priority:'P1', judgement:'Agent Runtime、高并发调度的重要加分项' },
-    { id:'java', name:'Java', domain:'backend', baidu:20.5, tencent:0, priority:'P2', judgement:'后端保底能力；无需挤占主线投入' },
-    { id:'distributed', name:'微服务 / 分布式', domain:'systems', baidu:32.8, tencent:26.7, priority:'P0', judgement:'最应复用的既有工程能力' },
-    { id:'multimodal', name:'多模态', domain:'model', baidu:15.3, tencent:25.1, priority:'P3', judgement:'有需求，但不是当前研究与作品集主线' },
-    { id:'eval', name:'评测 / Eval', domain:'agent', baidu:12.3, tencent:15.5, priority:'P0', judgement:'主线能力（方向 A/E 的核心），必须有固定 benchmark 与回归机制' },
-    { id:'observability', name:'可观测性', domain:'agent', baidu:4.1, tencent:7.6, priority:'P0', judgement:'与后端经验结合的差异化能力；Atlas 台账是现成载体' },
-    { id:'signal-rag', name:'RAG', domain:'agent', baidu:5.2, tencent:9.1, priority:'P1', judgement:'必须会完整链路，不押具体框架' },
-    { id:'function-calling', name:'Function Calling', domain:'agent', baidu:3.9, tencent:10.0, priority:'P1', judgement:'比 LangChain 熟练度更接近真实职责' },
-    { id:'memory', name:'Memory', domain:'agent', baidu:2.9, tencent:7.2, priority:'P0', judgement:'论文（方向 C/D）与求职叙事的接口' },
-    { id:'context', name:'上下文工程', domain:'agent', baidu:1.5, tencent:6.7, priority:'P0', judgement:'长任务稳定性、压缩与恢复的核心' },
-    { id:'multi-agent', name:'Multi-Agent', domain:'agent', baidu:4.0, tencent:4.5, priority:'P1', judgement:'用项目和评测证明，不停留在编排 demo' },
-    { id:'mcp', name:'MCP', domain:'agent', baidu:0.8, tencent:3.6, priority:'P1', judgement:'会实现 server/client，并能解释与 Function Calling、Skills 的边界' },
-    { id:'k8s', name:'Kubernetes', domain:'systems', baidu:11.6, tencent:2.6, priority:'P2', judgement:'平台岗必需，应用岗加分；重点理解部署与治理' },
-    { id:'langchain', name:'LangChain', domain:'framework', baidu:3.1, tencent:0.2, priority:'P3', judgement:'能判断何时用即可，不做框架专家' },
-    { id:'langgraph', name:'LangGraph', domain:'framework', baidu:0.8, tencent:0.2, priority:'P3', judgement:'同上' },
-    { id:'graphdb', name:'Neo4j / FalkorDB', domain:'data', baidu:0.3, tencent:0.2, priority:'P2', judgement:'低频但与论文、代码图谱项目高度协同' },
-    { id:'graphrag', name:'GraphRAG', domain:'framework', baidu:0, tencent:0, priority:'P3', judgement:'当前样本零命中；技术可用，但不作简历主标签' }
+    { id:'python', name:'Python', domain:'backend', baidu:53.7, tencent:1.7, priority:'P0', judgement:'必会的基本功；腾讯那个数只有 1.7%，是因为字段里根本不写要求，被低估了' },
+    { id:'cpp', name:'C++', domain:'backend', baidu:39.1, tencent:0.7, priority:'P3', judgement:'总量上很常见，但和主投的 AI 应用工程岗位关系不大' },
+    { id:'go', name:'Go', domain:'backend', baidu:29.2, tencent:1.2, priority:'P1', judgement:'做 Agent Runtime 和高并发调度时常用，值得投入' },
+    { id:'java', name:'Java', domain:'backend', baidu:20.5, tencent:0, priority:'P2', judgement:'保住后端找工作的底线即可，不要为它挤占主线时间' },
+    { id:'distributed', name:'微服务 / 分布式', domain:'systems', baidu:32.8, tencent:26.7, priority:'P0', judgement:'两边都高频，是已有的工程经验里最该继续用的部分' },
+    { id:'multimodal', name:'多模态', domain:'model', baidu:15.3, tencent:25.1, priority:'P3', judgement:'市场有需求，但不在我的研究和作品集主线里，先放着' },
+    { id:'eval', name:'评测 / Eval', domain:'agent', baidu:12.3, tencent:15.5, priority:'P0', judgement:'主线能力（方向 A/E 的核心）。要有一套固定的 benchmark 和回归机制做支撑' },
+    { id:'observability', name:'可观测性', domain:'agent', baidu:4.1, tencent:7.6, priority:'P0', judgement:'和后端经验结合后是差异化卖点，Atlas 的台账就是现成的证明材料' },
+    { id:'signal-rag', name:'RAG', domain:'agent', baidu:5.2, tencent:9.1, priority:'P1', judgement:'整条链路必须都会，但不押注某一个框架' },
+    { id:'function-calling', name:'Function Calling', domain:'agent', baidu:3.9, tencent:10.0, priority:'P1', judgement:'这项能力比 LangChain 熟练度更接近岗位实际要做的事' },
+    { id:'memory', name:'Memory', domain:'agent', baidu:2.9, tencent:7.2, priority:'P0', judgement:'论文（方向 C/D）和求职两边都用得上，是少数双线交汇的词' },
+    { id:'context', name:'上下文工程', domain:'agent', baidu:1.5, tencent:6.7, priority:'P0', judgement:'决定长任务稳不稳，涉及压缩和故障恢复' },
+    { id:'multi-agent', name:'Multi-Agent', domain:'agent', baidu:4.0, tencent:4.5, priority:'P1', judgement:'要用项目和评测数据来证明理解，只会搭编排 demo 不够' },
+    { id:'mcp', name:'MCP', domain:'agent', baidu:0.8, tencent:3.6, priority:'P1', judgement:'要能自己实现 server 和 client，并说清它和 Function Calling、Skills 的区别' },
+    { id:'k8s', name:'Kubernetes', domain:'systems', baidu:11.6, tencent:2.6, priority:'P2', judgement:'平台岗必需、应用岗加分；重点学部署和资源治理' },
+    { id:'langchain', name:'LangChain', domain:'framework', baidu:3.1, tencent:0.2, priority:'P3', judgement:'会判断什么时候该用就够了，不用把自己做成框架专家' },
+    { id:'langgraph', name:'LangGraph', domain:'framework', baidu:0.8, tencent:0.2, priority:'P3', judgement:'同 LangChain' },
+    { id:'graphdb', name:'Neo4j / FalkorDB', domain:'data', baidu:0.3, tencent:0.2, priority:'P2', judgement:'JD 里出现得少，但论文和代码图谱项目都要用，学一个就够' },
+    { id:'graphrag', name:'GraphRAG', domain:'framework', baidu:0, tencent:0, priority:'P3', judgement:'两边样本都是零命中。技术本身可以用，但不要写进简历当主标签' }
   ],
   roadmap: [
     { id:'skill-algo', name:'算法题与真实编码', priority:'P0', domain:'interview', target:'中等题稳定 25—35 分钟，能口述复杂度与边界', deadline:'2027.12 前', deliverable:'按专题完成题单；每月一次 90 分钟模拟面试', status:'planned',
@@ -50,22 +50,22 @@ window.SKILLS = {
         { kind:'web', label:'小林 coding（图解网络 / 图解系统 / 图解 MySQL）', url:'https://xiaolincoding.com/' },
         { kind:'book', label:'《TCP/IP 详解 卷 1》', url:'', tier:'extend' }
       ] },
-    { id:'skill-eval', name:'Agent 评测与可观测性', priority:'P0', domain:'agent', target:'独立设计 benchmark、trace schema、指标和回归门禁', deadline:'2027.06 前', deliverable:'minibank-trap 受控评测报告 + Atlas 假成功检测对比数据', status:'planned',
-      note:'评测设施在 90 天计划 W3—W8 就要动起来（受控重跑、基准设计、对比表）；2027.06 的截止指「独立设计 benchmark、trace schema 与回归门禁」的完整能力，不是把评测拖到次年才开始。',
+    { id:'skill-eval', name:'Agent 评测与可观测性', priority:'P0', domain:'agent', target:'独立设计 benchmark、trace schema、指标和回归检查', deadline:'2027.06 前', deliverable:'minibank-trap 受控评测报告 + Atlas 假成功检测对比数据', status:'planned',
+      note:'评测设施在 90 天计划 W3—W8 就要动起来（受控重跑、基准设计、对比表）；2027.06 指的是「能独立设计 benchmark、trace schema 和回归检查」这项完整能力到那时必须就绪，不是说到那时才开始做评测，评测在 90 天计划里就要开始动。',
       refs:[
         { kind:'paper', label:'假成功刻画（首篇对手，必读）', url:'https://arxiv.org/abs/2606.09863', local:'2606.09863' },
         { kind:'paper', label:'reliability@k 评测协议', url:'https://arxiv.org/abs/2608.14711', local:'2608.14711' },
         { kind:'paper', label:'静默失败纵向分类（生产运行时）', url:'https://arxiv.org/abs/2606.14589', local:'2606.14589' },
         { kind:'web', label:'OpenTelemetry 文档（trace/span 语义模型）', url:'https://opentelemetry.io/docs/' }
       ] },
-    { id:'skill-memory', name:'长期记忆与上下文工程', priority:'P0', domain:'agent', target:'能比较扁平、层级、图记忆的质量/成本/延迟', deadline:'2027.08 前', deliverable:'记忆后端三轴评测报告（方向 C）+ 图记忆对照实验', status:'planned',
+    { id:'skill-memory', name:'长期记忆与上下文工程', priority:'P0', domain:'agent', target:'能用质量、成本、延迟三个角度比较扁平、层级、图三类记忆组织方式', deadline:'2027.08 前', deliverable:'记忆后端三轴评测报告（方向 C）+ 图记忆对照实验', status:'planned',
       refs:[
-        { kind:'paper', label:'记忆机制综述（TOIS，术语坐标系）', url:'https://arxiv.org/abs/2404.13501', local:'2404.13501' },
+        { kind:'paper', label:'记忆机制综述（TOIS，把术语一次讲齐）', url:'https://arxiv.org/abs/2404.13501', local:'2404.13501' },
         { kind:'paper', label:'A-MEM（演化式记忆代表）', url:'https://arxiv.org/abs/2502.12110', local:'2502.12110' },
         { kind:'paper', label:'Zep（时序知识图记忆）', url:'https://arxiv.org/abs/2501.13956', local:'2501.13956' },
         { kind:'paper', label:'LoCoMo（记忆评测标准）', url:'https://arxiv.org/abs/2402.17753', local:'2402.17753' }
       ] },
-    { id:'skill-system-design', name:'后端与 Agent 系统设计', priority:'P0', domain:'systems', target:'设计高可用 Agent Runtime，覆盖幂等、重试、限流、观测和成本', deadline:'2028.01 前', deliverable:'6 个系统设计题 + 架构图 + trade-off 文档', status:'planned',
+    { id:'skill-system-design', name:'后端与 Agent 系统设计', priority:'P0', domain:'systems', target:'设计一个高可用的 Agent Runtime，把幂等、重试、限流、观测和成本方案都覆盖到', deadline:'2028.01 前', deliverable:'6 个系统设计题 + 架构图 + trade-off 文档', status:'planned',
       refs:[
         { kind:'book', label:'《Designing Data-Intensive Applications》（DDIA）', url:'' },
         { kind:'web', label:'ByteByteGo 系统设计图解（商业图解，作直觉，不作唯一来源）', url:'https://bytebytego.com/' },
@@ -94,7 +94,7 @@ window.SKILLS = {
         { kind:'paper', label:'Chain-of-Thought（思维链）', url:'https://arxiv.org/abs/2201.11903' },
         { kind:'paper', label:'Reflexion（语言化自我反思）', url:'https://arxiv.org/abs/2303.11366' }
       ] },
-    { id:'skill-model-basics', name:'Transformer / KV Cache / LoRA / RLHF 基础', priority:'P1', domain:'model', target:'达到应用工程面试解释与成本估算水平', deadline:'2027.12 前', deliverable:'一份模型基础面试手册', status:'planned',
+    { id:'skill-model-basics', name:'Transformer / KV Cache / LoRA / RLHF 基础', priority:'P1', domain:'model', target:'面试里能讲清原理，并估算不同方案的成本差异', deadline:'2027.12 前', deliverable:'一份模型基础面试手册', status:'planned',
       refs:[
         { kind:'paper', label:'Attention Is All You Need（Transformer 原文）', url:'https://arxiv.org/abs/1706.03762', tier:'extend' },
         { kind:'paper', label:'LoRA（低秩适配）', url:'https://arxiv.org/abs/2106.09685', tier:'extend' },
