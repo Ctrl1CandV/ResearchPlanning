@@ -62,7 +62,7 @@ const CASES = [
       phase: '入学前',
       daysBadge: '距 入学 3 天',
       noWeekBadge: true,
-      actions: ['第一封邮件', '公共必读前 4 篇', '学位成果要求', 'Atlas 全量测试']
+      actions: ['第一封邮件', '公共必读前三篇', '学位成果要求', 'Atlas 全量测试']
     }
   },
   {

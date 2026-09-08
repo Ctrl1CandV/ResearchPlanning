@@ -12,8 +12,9 @@ const vm = require('vm');
 const ROOT = path.join(__dirname, '..');   // 已从仓库根移入 scripts/，回退一层定位 site/
 const ROUTES = ['dashboard', 'baseline', 'research', 'reading', 'tools', 'jobs', 'skills', 'portfolio', 'career', 'verify'];
 // 学习层多级路由：L2 样例 + L3 样例 + 非法第二/三段必须逐级回退（PAPER-DEEP-READ-DESIGN.md §11.1）
+// 2026-09-06 方向重构后：公共层 = 主线地基（前三篇立问题），记忆类移入 C/D，MRAgent 移入 A
 const L2_ROUTES = [
-  ['reading/common', 'paper-common-2005.11401'],
+  ['reading/common', '把问题立起来'],
   ['reading/A', '方向必读'],
   ['reading/B', '延伸阅读'],
   ['reading/C', '延伸阅读'],
@@ -23,14 +24,21 @@ const L2_ROUTES = [
   ['skills/skill-eval', '学习步骤'],
   ['skills/skill-algo', '面试的硬门槛'],
   ['skills/skill-graphdb', '二选一'],
-  ['reading/ZZZ', '六条方向路线'],
+  ['reading/ZZZ', '方向轨道'],
   ['skills/nope', '学习路线']
 ];
-// L3 阅读卡：有卡（深读）/ 无卡（降级提示）/ 速览卡 / 第三段非法逐级回退
+// L3 阅读卡：深读卡样例（公共/主线 A/方向 D 前置/换轨卡）/ 速览卡 / 第三段非法逐级回退
+// （2026-09-06 起条目 73 = 72 卡 + 1 预印本无卡走外链；降级占位页仅作防御分支）
 const L3_ROUTES = [
-  ['reading/common/2005.11401', '原文里重点读这几处'],
-  ['reading/common/2606.09863', '合上论文，这几问能答上吗'],
-  ['reading/A/2606.04990', '阅读卡待生成'],
+  ['reading/common/2606.09863', '原文里重点读这几处'],
+  ['reading/common/2608.02645', '原文里重点读这几处'],
+  ['reading/common/2606.04990', '原文里重点读这几处'],
+  ['reading/A/2309.02427', '这篇在讲什么'],
+  ['reading/A/2606.06036', '这篇在讲什么'],
+  ['reading/D/1609.02907', '这篇在讲什么'],
+  ['reading/D/2404.16130', '这篇在讲什么'],
+  ['reading/F/2401.18059', '合上论文，这几问能答上吗'],
+  ['reading/F/2606.13177', '为什么现在不用细读'],
   ['reading/B/2303.17760', '为什么现在不用细读'],
   ['reading/A/2303.17760', '方向必读'],
   ['reading/common/2303.17760', '分三段'],

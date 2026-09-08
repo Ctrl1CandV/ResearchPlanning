@@ -6,13 +6,13 @@ window.PORTFOLIO = {
   projects: [
     {
       id:'atlas', name:'Atlas', status:'活跃开发中（2026-08-28 仍在推进）', claimType:'fact',
-      problem:'把多个 LLM 调用串成流水线时，「看起来成功了」和「真的成功了」是两回事：输出为空、被截断、字段缺失、悄悄失败、成本失控。做一条能提前发现这些问题的流水线，正是论文主线（假成功检测）需要的工程基础。',
+      problem:'把多个 LLM 调用串成流水线时，「看起来成功了」和「真的成功了」是两回事：输出为空、被截断、字段缺失、悄悄失败、成本失控。做一条能提前发现这些问题的流水线，正是论文主线（任务完成验证）需要的执行与评测设施。',
       architecture:['工作流用 YAML 定义，是一张有向图；不同厂商的模型各干各擅长的一段','假成功检测：拦空输出、加截断哨兵、查缺字段，失败时换另一家模型兜底','产物带 SHA-256 哈希断言，引用在节点间传递；缺失、截断、空输出都会明确报错而不是悄悄放过','dry-run 用同构的小数据预演一遍，不花钱','执行记录只追加、不改写的 JSONL 台账，是唯一的事实来源','崩溃后恢复时，只重跑没完成的节点','人工审批门绑定产物的哈希证据，驳回必须写理由','成本有预留和上限两道闸；本机网页界面能看每个节点的输入输出、token、耗时和费用'],
       tradeoffs:['目前只支持 Windows 单机运行，不做通用部署。换来的是随时能测、改得快。','隔离靠路径和白名单约束，不是操作系统级沙箱，不能当安全边界用','回边暂时不带审查意见，循环是从冻结的基线重新实施（记在 BACKLOG）','拓扑里写了“审查者”不等于真的有独立意见，独立性靠用不同厂商的模型来保证'],
       milestones:[
-        { id:'atlas-false-success', stage:'假成功检测', title:'显式失败与 fallback', tasks:['空输出/截断/缺字段拦截','截断哨兵与跨厂商 fallback','失败运行如实入账（思考耗尽预算致空输出、prompt 只送达 1% 均被记录）'], acceptance:'真实故障能被拦下，台账里看得懂为什么被拦、能复现' },
-        { id:'atlas-audit', stage:'审计与台账', title:'哈希断言 + JSONL 台账 + 人工门', tasks:['产物哈希事后独立复验','逐节点 token/耗时/费用记账','审批绑定材料哈希，驳回必填理由'], acceptance:'跑完 10 个节点，每个产物都能独立重验一遍；全程花费逐条可查' },
-        { id:'atlas-eval', stage:'评测基准', title:'检测器同口径对比（规划）', tasks:['内置检测器 vs LLM-as-Judge / 退出码 / Schema 检查','假成功类型学标注协议','误报率与成本曲线'], acceptance:'对比表达到论文可引用的水平，直接支撑第一篇论文的实验章节' }
+        { id:'atlas-false-success', stage:'假成功检测', title:'显式失败与 fallback', tasks:['空输出、截断、缺字段的拦截','截断哨兵与跨厂商 fallback','失败运行如实入账（思考耗尽预算致空输出、prompt 只送达 1% 均被记录）'], acceptance:'真实故障能被拦下，台账里看得懂为什么被拦、能复现' },
+        { id:'atlas-audit', stage:'审计与台账', title:'哈希断言 + JSONL 台账 + 人工门', tasks:['产物哈希事后独立复验','逐节点记账：token、耗时、费用','审批绑定材料哈希，驳回必填理由'], acceptance:'跑完 10 个节点，每个产物都能独立重验一遍；全程花费逐条可查' },
+        { id:'atlas-eval', stage:'评测基准', title:'检测器同条件对比（规划）', tasks:['内置检测器 vs LLM-as-Judge / 退出码 / Schema 检查','任务完成验证的标注协议','误报率、无法确认比例与成本曲线'], acceptance:'对比表达到论文可引用的水平，直接支撑主线第一篇论文的实验章节' }
       ],
       metrics:[
         { key:'tests', label:'自动化测试', value:'542 + 22 web（2026-08-26 基线，CI 绿）', status:'measured' },
@@ -22,7 +22,7 @@ window.PORTFOLIO = {
       ],
       artifacts:['GitHub 仓库（Apache-2.0，双语 README）','docs/STATUS.md 测试矩阵，失败的记录也在里面','可直接复用的 YAML 示例工作流','CI 流水线与 2026-08-26 测试基线'],
       relatedRoles:['Harness / 评测 / 可观测','Agent 开发 / 架构','AI 平台'],
-      relatedTeams:['百度 AIDU 全栈（接受自发项目）','腾讯 CSIG Harness/策略工程','评测型岗位（阿里/美团 LongCat 类）']
+      relatedTeams:['百度 AIDU 全栈（接受自发项目）','腾讯 CSIG 的 Harness 和策略工程团队','评测型岗位（阿里和美团的 LongCat 类）']
     },
     {
       id:'agent-parliament', name:'AgentParliament', status:'开源维护中 · 37★ / 5 fork', claimType:'fact',
@@ -32,7 +32,7 @@ window.PORTFOLIO = {
       milestones:[
         { id:'ap-core', stage:'核心', title:'MCP 服务与三级权限', tasks:['10 个工具全量实现','权限越界拒绝与只读白名单','双语 README 与安装链路'], acceptance:'已达成：工具可用、权限边界生效' },
         { id:'ap-trap', stage:'评测', title:'minibank-trap 缺陷检出实测', tasks:['补齐配置、模型、温度、重复次数、成本记录','按论文标准重新受控重跑','与 LLM-as-Judge 单审对比'], acceptance:'结论至少有 3 次重复实验支撑，可以引用；替换掉现在 n=1 的记录' },
-        { id:'ap-eval', stage:'Eval', title:'指标体系与回归报告（规划）', tasks:['任务成功率、缺陷召回、恢复率','交叉审查 vs 单审的增益量化','与 Atlas 假成功检测打通'], acceptance:'评测报告能重跑复现，支撑论文第二篇（交叉审查到底有没有用）' }
+        { id:'ap-eval', stage:'Eval', title:'指标体系与回归报告（规划）', tasks:['任务成功率、缺陷召回、恢复率','交叉审查 vs 单审的增益量化','与 Atlas 假成功检测打通'], acceptance:'评测报告能重跑复现，支撑扩展方向（额外模型审查与额外环境查询的对照实验）' }
       ],
       metrics:[
         { key:'trap-code', label:'minibank-trap 代码缺陷召回', value:'6/6（n=1，待补重复实验）', status:'preliminary' },
@@ -47,7 +47,7 @@ window.PORTFOLIO = {
     {
       id:'code-graph-rca', name:'代码知识图谱 + Agent 根因分析', status:'规划中（第三储备）', claimType:'inference',
       problem:'光靠向量检索找不到调用、依赖、影响这些关系。定位故障需要一张结构化的代码图，以及一条每一步都能验证的推理路径。这个项目和百度 ACG J99649 的“代码知识图谱 + 根因分析”方向直接对应。',
-      architecture:['Go 并发 AST 解析器','调用/依赖/类型图','Neo4j 或 FalkorDB','MCP 图查询服务','Python RCA Agent','增量索引与影响面分析'],
+      architecture:['Go 并发 AST 解析器','调用、依赖、类型三种图','Neo4j 或 FalkorDB','MCP 图查询服务','Python RCA Agent','增量索引与影响面分析'],
       tradeoffs:['先只支持 Go 一门语言，把深度和可测试性做出来','Neo4j 或 FalkorDB 选一个做，不为凑技术清单实现两遍','根因答案必须附上涉及的文件、函数和关系路径，不给验证不了的结论'],
       milestones:[
         { id:'cg-index', stage:'Index', title:'代码图谱构建', tasks:['解析包、类型、函数和调用边','并发扫描与增量更新','schema 和索引设计'], acceptance:'在一个公开的中型仓库上，给出索引耗时、吞吐和图规模' },
@@ -72,22 +72,22 @@ window.PORTFOLIO = {
     { title:'让人自己验证', detail:'README、CI、STATUS.md、台账、diff 存档，这些放在一起才算可信的作品集。私有评测集要出脱敏版，别人才能复算。' }
   ],
   narratives: {
-    positioning:'我有生产后端的经验，想做的是让 Agent 变得更可信：读研阶段把成功验证、评测、可观测做成能拿数字说话的系统能力，证明就是 Atlas 和 AgentParliament 这两个开源项目。',
-    whyGraduate:'做实际项目时反复撞上两类问题，用 prompt 打补丁都解决不了：一是多模型流水线的「假成功」（宣称完成但证据不成立），二是长任务的记忆失控。前者已经做成了 Atlas 的检测机制，后者是论文的延伸方向。读研就是想把这两个工程问题写成正式的问题定义，做基准、做方法，再拿回生产环境验证。',
-    thesisToJob:'Agent 流水线最大的可靠性漏洞是「假成功」：退出码为 0、模型说完成了，但环境状态、产物证据或安全约束其实没成立。我的工作是把“成功”拆成声明、证据、状态三层分别验证，做分类、基准和检测器，再延伸到记忆后端的成本、精度、延迟评测。做出来的成功率、误报率、成本这些指标，正是 Harness 和评测岗位每天在谈的东西。',
-    notGraphRag:'学术上做的是可信 Agent 系统和评测方法（记忆这条线保留图方法，用来和导师的技术栈衔接）；求职时就说 Agent 评测、可靠性、可观测性、Harness 工程。',
+    positioning:'我有生产后端的经验，想做的是让 Agent 变得更可信：读研阶段把任务完成验证、评测、可观测做成能拿数字说话的系统能力，证明就是 Atlas 和 AgentParliament 这两个开源项目。',
+    whyGraduate:'做实际项目时反复撞上两类问题，用 prompt 打补丁都解决不了：一是多模型流水线的「假成功」（宣称完成但环境状态没跟上），二是长任务的记忆失控。前者已经做成了 Atlas 的检测机制，也是论文主线的问题来源；后者对应方向 C，已改为条件备选。读研就是想把前者写成正式的问题定义（预算约束下查什么证据才能判断完成），做协议、做实验，再拿回生产环境验证。',
+    thesisToJob:'Agent 流水线最大的可靠性漏洞是「假成功」：退出码为 0、模型说完成了，但环境状态其实没改对。我的研究问题是验证器的决策问题：拿不到标准答案、只有有限的查询预算时，该检查哪些环境状态，才能以可接受的误报率判断任务完成，何时承认无法确认。做出来的检出率、误报率、无法确认比例、成本这些指标，正是 Harness 和评测岗位每天在谈的东西。',
+    notGraphRag:'学术上做的是任务完成验证和评测方法（记忆与图方法两条线已暂缓、资料保留，用于和导师的备选合作）；求职时就说 Agent 评测、可靠性、可观测性、Harness 工程。',
     labels:['Agent Evaluation','Reliability','False-Success Detection','Harness Engineering','Observability','MCP','Distributed Backend','Go / Python','Knowledge Graph']
   },
   resumeBullets: [
     { id:'resume-atlas', project:'Atlas', template:'构建本地可审计的多模型工作流引擎：假成功检测 + 产物哈希断言 + JSONL 台账 + 人工审批门；542 项测试 CI 绿，10 节点端到端 361s / 约 $0.01；（实测后补充）假成功检出率较 LLM-as-Judge 提升 {A}%，误报率 {B}%。' },
     { id:'resume-ap', project:'AgentParliament', template:'设计并实现多模型交叉验证 MCP 服务（10 工具 / 三级权限），在私有的带缺陷评测集上召回 6/6 代码缺陷、5/5 设计漏洞（n=1，补齐重复实验后更新）；（实测后补充）交叉审查较单审成功率提升 {B}%，单位成本 {C}。' },
-    { id:'resume-memory', project:'记忆后端评测', template:'在成本-精度-延迟三轴上同口径评测 {记忆后端集合}，量化图结构记忆相对平铺记忆在 {数据集} 上的 {指标}，token 成本变化 {数值}。（仅在实测后填写）' },
+    { id:'resume-memory', project:'记忆后端评测', template:'在成本、精度、延迟三根轴上用同一套条件评测 {记忆后端集合}，量化图结构记忆相对平铺记忆在 {数据集} 上的 {指标}，token 成本变化 {数值}。（仅在实测后填写）' },
     { id:'resume-codegraph', project:'代码图谱 RCA', template:'使用 Go 并发解析 {规模} 代码库并构建调用图，通过 MCP 为 Agent 提供可验证路径查询；根因 Top-{k} 命中率 {数值}，索引吞吐 {数值}，P99 {数值}。（仅在实测后填写）' }
   ],
   storyTemplate: [
     { step:'错误选择', prompt:'我最初为什么选择这个方案？当时依据是什么？' },
     { step:'异常信号', prompt:'哪个指标、日志或用户反馈证明它不工作？' },
-    { step:'最小实验', prompt:'怎样隔离变量，排除实现 bug 与数据口径问题？' },
+    { step:'最小实验', prompt:'怎样隔离变量，排除实现 bug 和统计方式的问题？' },
     { step:'纠正方案', prompt:'替代方案的 trade-off 是什么？' },
     { step:'结果', prompt:'成功率、成本、P99、吞吐分别怎样变化？' },
     { step:'边界', prompt:'什么场景下仍应使用原方案？' }

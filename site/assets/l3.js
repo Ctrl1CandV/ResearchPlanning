@@ -37,7 +37,7 @@
 
   /* ── 常量副本（app.js 内部不可见，改动双处同步） ── */
   var TRACK_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
-  var trackShort = { A: '假成功检测', B: '交叉审查', C: '记忆评测', D: '图结构记忆', E: '代码基准审计', F: '记忆压缩' };
+  var trackShort = { A: '任务完成验证', B: '交叉审查', C: '记忆评测', D: '图结构记忆', E: '代码基准审计', F: '记忆压缩' };
   var ROUTE_NO = { dashboard: '00', baseline: '01', research: '02', reading: '03', tools: '04', jobs: '05', skills: '06', portfolio: '07', career: '08', verify: '09' };
   var ACT = {
     deep: { label: '精读', cls: 'act-deep', li: '' },
@@ -205,7 +205,7 @@
     var card = (window.PAPERS_BY_AX || {})[ax] || null;
     var skim = card && card.skim;
     var html = '<div class="page">' + crumbHtml(level, entry) + headerHtml(level, entry, card) +
-      locBlock(entry, level === 'common' ? '为什么在公共必读里' : '为什么在这条路线里');
+      locBlock(entry, level === 'common' ? '为什么在主线公共必读里' : '为什么在这条路线里');
 
     if (card && !skim) {
       html += deepBlocks(card, entry, checks);
@@ -217,8 +217,8 @@
       html += unreadHtml(null);
     } else {
       html += '<div class="callout warn"><span class="t">阅读卡待生成</span>' +
-        '导读卡片还在按批次生成：公共必读 13 篇和延伸层的速览卡已经完成，方向主路径的 37 篇陆续补齐。' +
-        '现在可以先用上面的 arXiv 链接读原文；卡片生成后，这一页会加上内容摘要、阅读重点和自测问题。</div>' +
+        '这篇论文还没有导读卡。现在可以先用上面的 arXiv 链接读原文；' +
+        '卡片生成后，这一页会加上内容摘要、阅读重点和自测问题。</div>' +
         section('读完打卡') + checkHtml('paper-' + level + '-' + entry.ax, '已读：' + entry.t, checks.has('paper-' + level + '-' + entry.ax));
     }
 
