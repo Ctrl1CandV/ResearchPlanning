@@ -3,33 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light dark">
   <meta name="description" content="面向 Agent 应用与基础设施岗位的研究生三年科研、实习与求职决策工作台。">
   <title>研究生三年发展路径 · 决策工作台</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+  <!-- 主题在首帧绘制前定格：浅色是默认，只有明确存过 dark 才切深色（localStorage 异常时保持浅色） -->
+  <script>try { if (localStorage.getItem('rp.theme') === 'dark') document.body.className += ' dark'; } catch (e) { }</script>
   <a class="skip-link" href="#content">跳到主要内容</a>
   <div class="layout">
     <aside class="sidebar" id="sidebar" aria-label="主导航">
       <div class="brand">
         <h1>研究生三年发展路径</h1>
-        <div class="sub">RESEARCH × AGENT × CAREER</div>
       </div>
       <nav class="nav" id="nav">
-        <div class="nav-sep">决策基线</div>
-        <a class="nav-item" href="#dashboard" data-route="dashboard"><span class="idx">00</span><span>总览仪表盘</span></a>
-        <a class="nav-item" href="#baseline" data-route="baseline"><span class="idx">01</span><span>现实基线</span></a>
-        <div class="nav-sep">科研主线</div>
-        <a class="nav-item" href="#research" data-route="research"><span class="idx">02</span><span>研究主线</span></a>
-        <a class="nav-item" href="#reading" data-route="reading"><span class="idx">03</span><span>阅读与 90 天启动</span></a>
-        <a class="nav-item" href="#tools" data-route="tools"><span class="idx">04</span><span>科研工具链与规范</span></a>
-        <div class="nav-sep">职业路径</div>
-        <a class="nav-item" href="#jobs" data-route="jobs"><span class="idx">05</span><span>实习与岗位</span></a>
-        <a class="nav-item" href="#skills" data-route="skills"><span class="idx">06</span><span>技能矩阵</span></a>
-        <a class="nav-item" href="#portfolio" data-route="portfolio"><span class="idx">07</span><span>作品集</span></a>
-        <a class="nav-item" href="#career" data-route="career"><span class="idx">08</span><span>求职资产</span></a>
-        <a class="nav-item" href="#verify" data-route="verify"><span class="idx">09</span><span>待核验清单</span></a>
+        <div class="nav-sep">每天打开</div>
+        <a class="nav-item" href="#dashboard" data-route="dashboard"><span>当前安排</span></a>
+        <a class="nav-item" href="#reading" data-route="reading"><span>本周学习</span></a>
+        <a class="nav-item" href="#verify" data-route="verify"><span>待核验事项</span></a>
+        <div class="nav-sep">研究与实践</div>
+        <a class="nav-item" href="#research" data-route="research"><span>研究主线</span></a>
+        <a class="nav-item" href="#skills" data-route="skills"><span>技能学习</span></a>
+        <a class="nav-item" href="#portfolio" data-route="portfolio"><span>作品集</span></a>
+        <div class="nav-sep">长期规划与参考</div>
+        <a class="nav-item" href="#jobs" data-route="jobs"><span>实习与岗位</span></a>
+        <a class="nav-item" href="#career" data-route="career"><span>求职准备</span></a>
+        <a class="nav-item" href="#baseline" data-route="baseline"><span>读研前提</span></a>
+        <a class="nav-item" href="#tools" data-route="tools"><span>工具与方法</span></a>
       </nav>
       <div class="sidebar-foot">
         <!-- 证据分级图例：这份文档的核心纪律是「不把推断当事实」，
@@ -40,8 +41,14 @@
           <span><i style="background:var(--low)"></i>推断</span>
         </div>
         <button class="toggle-theme" id="theme-toggle" type="button" aria-label="切换深浅主题">◐ <span>切换主题</span></button>
-        <button class="btn sm" id="reset-progress" type="button">重置进度</button>
-        <div class="mono-sm">数据修订至 2026-09-06 · 进度保存在本机</div>
+        <details class="acc" id="settings-panel">
+          <summary>本机设置</summary>
+          <div class="acc-body">
+            <p class="mono-sm" style="margin:0 0 8px">勾选进度只存在这台电脑的浏览器里。</p>
+            <button class="btn sm" id="reset-progress" type="button">清空全部进度</button>
+          </div>
+        </details>
+        <div class="mono-sm">数据修订至 2026-09-06</div>
       </div>
     </aside>
     <button class="nav-overlay" id="nav-overlay" type="button" aria-label="关闭导航" tabindex="-1"></button>

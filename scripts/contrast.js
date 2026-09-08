@@ -98,11 +98,13 @@ const TEXT_KEYS = ['--text', '--text-soft', '--text-dim', '--text-faint',
 const BG_KEYS = ['--bg', '--bg-elevated', '--bg-card', '--bg-card-hover', '--bg-inset'];
 
 const root = tokensAll(':root');
-const light = tokensAll('body.light');
+// 2026-09-06 展示改版：浅色是默认（:root 即浅色），深色整体挂在 body.dark 上。
+// 口径随 CSS 结构调整（设计说明 §4），两套主题都要审计，不允许只审一套。
+const dark = tokensAll('body.dark');
 
 const themes = [
-  { name: 'DARK ', tokens: root.tokens },
-  { name: 'LIGHT', tokens: { ...root.tokens, ...light.tokens } }
+  { name: 'LIGHT', tokens: root.tokens },
+  { name: 'DARK ', tokens: { ...root.tokens, ...dark.tokens } }
 ];
 
 let pass = 0;
@@ -130,7 +132,7 @@ console.log('对比度审计 · 阈值 4.5:1（WCAG AA 正文）\n');
 
 // 先打印脚本实际读到的值。这一段是防「假通过」的关键：
 // 如果这里显示的不是你刚改的颜色，说明解析没跟上 CSS 结构。
-console.log(`解析到 ${root.blocks} 个 :root 块、${light.blocks} 个 body.light 块（已排除 @media print）`);
+console.log(`解析到 ${root.blocks} 个 :root 块、${dark.blocks} 个 body.dark 块（已排除 @media print）`);
 console.log('脚本实际使用的色值：');
 for (const theme of themes) {
   const bg = theme.tokens['--bg'];

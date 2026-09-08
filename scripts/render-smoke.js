@@ -29,6 +29,12 @@ const L2_ROUTES = [
 ];
 // L3 阅读卡：深读卡样例（公共/主线 A/方向 D 前置/换轨卡）/ 速览卡 / 第三段非法逐级回退
 // （2026-09-06 起条目 73 = 72 卡 + 1 预印本无卡走外链；降级占位页仅作防御分支）
+// v3 周选择路由（实施路线 §4-D5）：合法周 / 非法周回退
+const WEEK_ROUTES = [
+  ['reading/week/W5', '这周要做什么'],
+  ['reading/week/W99', '本周学习']
+];
+
 const L3_ROUTES = [
   ['reading/common/2606.09863', '原文里重点读这几处'],
   ['reading/common/2608.02645', '原文里重点读这几处'],
@@ -99,12 +105,17 @@ for (const r of ROUTES) {
       const m = html.match(/<p>([^<]+)<\/p>/);
       problems.push('渲染进入 catch 分支' + (m ? '：' + m[1] : ''));
     }
+    // v3（qwen minor-3 / GPT 复核）：首页主行动按钮全页恰好 1 个——放在一级路由循环，dashboard 在此执行
+    if (r === 'dashboard') {
+      const n = (html.match(/class="btn primary"/g) || []).length;
+      if (n !== 1) problems.push('主行动按钮数量为 ' + n + '，应为 1');
+    }
   }
   if (problems.length) { failed += 1; console.log('FAIL', r, '->', problems.join('; ')); }
   else console.log('PASS', r, '(' + html.length + ' chars)');
 }
 
-for (const [r, expect] of L2_ROUTES.concat(L3_ROUTES)) {
+for (const [r, expect] of L2_ROUTES.concat(L3_ROUTES, WEEK_ROUTES)) {
   global.location.hash = '#' + r;
   appEl.innerHTML = '';
   let threw = null;
@@ -118,8 +129,64 @@ for (const [r, expect] of L2_ROUTES.concat(L3_ROUTES)) {
     if (/>\s*null\s*</.test(html)) problems.push('出现裸 null');
     if (html.indexOf('页面渲染失败') >= 0) problems.push('渲染进入 catch 分支');
     if (expect && html.indexOf(expect) < 0) problems.push('缺少期望内容「' + expect + '」');
+    // v3：任何 L3/周路由渲染结果不得出现空 ID 站内卡链接（预印本无 ax，实施路线 §5.5）
+    if (/href="#reading\/[a-zA-Z]+\/"/.test(html)) problems.push('出现空 ID 阅读卡链接');
   }
   if (problems.length) { failed += 1; console.log('FAIL', r, '->', problems.join('; ')); }
   else console.log('PASS', r, '(' + html.length + ' chars)');
 }
+
+// ── 进度桩：预印本勾选计入公共必读、plan90v2 点亮周条、旧 week-* 不点亮任何周（实施路线 §7-2） ──
+(function progressStubs() {
+  const store = {};
+  global.localStorage = {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; }
+  };
+  store['rp.checks'] = JSON.stringify([
+    'paper-common-202608.2057',   // 预印本（srcUrl 手稿号）
+    'paper-common-2606.09863',
+    'plan90v2-W3',                // 新版周勾选
+    'week-W1'                     // 旧版前缀：不得点亮新计划
+  ]);
+  global.location.hash = '#reading/week/W3';
+  appEl.innerHTML = '';
+  let threw = null;
+  try { run('site/assets/app.js'); } catch (e) { threw = e; }
+  const html = appEl.innerHTML;
+  const problems = [];
+  if (threw) problems.push('异常: ' + (threw && threw.message ? threw.message : threw));
+  if (!threw) {
+    // W3 选中周详情出现且勾选态为已验收
+    if (!html.includes('这周要做什么')) problems.push('缺周详情卡');
+    if (!/data-check-id="plan90v2-W3"\s*checked/.test(html) && !/data-check-id="plan90v2-W3" checked/.test(html)) problems.push('plan90v2-W3 未点亮');
+    // 周条 W3 有 done 态；W1 只有旧前缀勾选，绝不能有 done 态
+    if (/class="ws-chip[^"]*done[^"]*"[^>]*>W1</.test(html)) problems.push('旧 week-W1 点亮了新 W1');
+    if (!/class="ws-chip[^"]*done[^"]*"[^>]*>W3</.test(html)) problems.push('W3 周条没有完成态');
+    // 旧前缀不得被新代码生成
+    if (/data-check-id="week-/.test(html)) problems.push('新代码生成了 week-* 前缀勾选');
+  }
+  if (problems.length) { failed += 1; console.log('FAIL progress-stub ->', problems.join('; ')); }
+  else console.log('PASS progress-stub');
+})();
+
+// 公共必读计数：预印本（srcUrl 手稿号）勾选必须计入（GPT 复核：桩里放了两篇，首页应显示 2 / 12）
+(function commonCountStub() {
+  global.location.hash = '#dashboard';
+  appEl.innerHTML = '';
+  let threw = null;
+  try { run('site/assets/app.js'); } catch (e) { threw = e; }
+  const html = appEl.innerHTML;
+  const problems = [];
+  if (threw) problems.push('异常: ' + (threw && threw.message ? threw.message : threw));
+  if (!threw) {
+    // dashboard「做到哪了」卡的公共必读行应显示 2 / 12（预印本计入）
+    // dashboard「做到哪了」卡的公共必读行应显示 2 / 12（预印本计入）
+    if (!html.includes('公共必读') || !html.includes('<span class="lbl">2 / 12</span>')) problems.push('公共必读计数未把预印本算入（应为 2 / 12）');
+  }
+  if (problems.length) { failed += 1; console.log('FAIL common-count ->', problems.join('; ')); }
+  else console.log('PASS common-count');
+})();
+
 process.exit(failed ? 1 : 0);

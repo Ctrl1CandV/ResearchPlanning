@@ -61,16 +61,15 @@ facts → research → tools → jobs → skills → portfolio → papers → l3
 
 | 全局对象 | 顶层键 |
 |---|---|
-| `DATA` | `meta, summary(要点), corrections(4), advisor, rules, partners, employment, wafNote` |
-| `RESEARCH` | `positioning, summary(要点), readingSummary(要点), angles(3：A 主线 tier:'main' + B/E 扩展 tier:'extension'), archived(3：C/D/F 存档一行卡，各含 id/status/name/line/track), rejected(2), angleAdvice, reading{common(12 = 11 ax + 1 srcUrl 预印本，items 字段), tracks(A 2 · B 6+6延伸 · C 5+11延伸 · D 前置3+7主+10延伸 · E 5 · F 5+1延伸，各含 pitch/fit/stages/papers/repos/datasets/note)}, metrics(5 组), plan90(12), plan90Switch, fallback(6), saturated(10), rivals(11), rivalJudgement, translate, pitch, reportDeck, reportTips, firstMail` |
-| `TOOLS` | `disclaimer, core(11 速查), companion, monthly` |
-| `JOBS` | `pageNote, meta, summary(要点), cityPolicy(phases×2 + transit), stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(7), risks, verifySummary(要点), verification(13)` |
-| `SKILLS` | `meta, summary(要点), signals(19), roadmap(13，每条含 refs 学习参考；refs 可带 tier:'extend'，roadmap 可带 note 边界说明), interviewTracks(4)` |
+| `DATA` | `meta, corrections(4，第三条带 superseded:true=已被 2026-09 主线取代，渲染归档标注用), advisor, rules, partners, employment, wafNote` |
+| `RESEARCH` | `positioning, angles(3：A 主线 tier:'main' + B/E 扩展 tier:'extension'), archived(3：C/D/F 存档一行卡，各含 id/status/name/line/track), rejected(2), angleAdvice, reading{common(12 = 11 ax + 1 srcUrl 预印本，items 字段), tracks(A 2 · B 6+6延伸 · C 5+11延伸 · D 前置3+7主+10延伸 · E 5 · F 5+1延伸，各含 pitch/fit/stages/papers/repos/datasets/note)}, metrics(5 组), plan90(12), plan90Switch, fallback(6), saturated(10), rivals(11), rivalJudgement, translate, pitch, reportDeck, reportTips, firstMail` |
+| `TOOLS` | `groups(4 任务组：查文献/读论文/记实验/准备投稿，引用 core 的工具名), core(11 速查), companion, monthly` |
+| `JOBS` | `pageNote, meta, cityPolicy(phases×2 + transit), stats, roleFamilies(9), teams(14), internshipLadder(4), timeline, regions(7), risks, verification(13)` |
+| `SKILLS` | `meta, signals(19), roadmap(13，每条含 refs 学习参考；refs 可带 tier:'extend'，roadmap 可带 note 边界说明), interviewTracks(4)` |
 | `PORTFOLIO` | `projects(3), principles, narratives, resumeBullets(4，当前不渲染、2027 重做时启用), storyTemplate, applicationPriority` |
 
-`summary` / `readingSummary` / `verifySummary` 是**页面要点块**（`pageSummary` 组件渲染在页头下方，3—5 条）。
-文案必须从该页现有内容提炼，**不要新造结论**；页面内容更新时同步核对要点，防止要点与正文漂移。
-`dashboard / tools / career / portfolio` 四页没有要点块（各有定位说明或本身即速查）。
+**2026-09-06 展示改版后 `pageSummary` 要点块与各页 `summary`/`readingSummary`/`verifySummary` 数据字段已整体删除**（与 positioning/pageNote 等导语重复，且长期双份维护必然漂移；2026-09-07 清理时移除）。不要再新增 summary 字段——页面导语一律走 positioning/pageNote/lede。
+`dashboard / tools / career / portfolio` 四页从来没有要点块（各有定位说明或本身即速查）。
 
 ### 常用字段结构
 
@@ -244,6 +243,8 @@ reading: {
 
 ## 6. 渲染层要点
 
+**app.js ↔ l3.js 同步锁（2026-09-06 登记，qwen 审查 minor-2）**：`escapeHtml / badge / section / details` 四个工具在两个文件各有一份（IIFE 隔离，无法共享）。改任何一个的签名或行为，必须同步另一份——当前唯一保护是这条记录，没有自动化校验。
+
 `app.js` 是一个 IIFE，结构为「工具函数 → 组件 → 十个页面 → 状态与事件」。
 
 - **路由**：`location.hash`，未知 hash 回退到 `dashboard`。
@@ -301,7 +302,9 @@ reading: {
 
 ## 6.2 配色约束
 
-强调色是**蓝图靛** `#7d9bff`（浅色主题 `#4055c8`），不是第一版的亮青。
+**2026-09-06 展示改版后：浅色是默认主题**（`:root` 即浅色值），深色整体挂在 `body.dark` 上；`index.html` 里 body 开标签后的内联脚本在首帧绘制前读 `rp.theme`，只有存过 `'dark'` 才切深色。改色时先分清「默认值」和「深色覆盖」两层。
+
+强调色是克制蓝：浅色（默认）`#4055c8`，深色 `#7d9bff`。不是第一版的亮青。
 
 **关键约束：绿 `--high` / 琥珀 `--mid` / 红 `--low` 三色已被「一手 / 二手 / 推断」占用，是内容语义而非装饰。** 强调色必须避开这三个色相，否则可靠度分级读不出来。`--info` 也因此从蓝移到青（`#38bdf8`），以免与靛色强调色混淆。
 
@@ -319,16 +322,19 @@ npm run contrast   # scripts/contrast.js：双主题全组合审计，非零退�
 
 ---
 
-## 6.3 视觉身份（v2 · 精密蓝图）
+## 6.3 视觉身份（v3 · 安静的阅读工作台）
 
-v2 在 v1 令牌体系上叠加了四个签名元素，改样式时不要无意中拆掉：
+**2026-09-06 展示改版（设计说明见 docs/展示改版设计说明-给GLM5.3.md，实施记录见 docs/展示改版实施路线-2026-09-06.md §12）替换了 v2 的视觉身份。** v2 的网格底纹、点阵标记、编号系统、渐变标题已全部移除，不要恢复：
 
-1. **图纸底纹**：`body::before` 的固定网格（`--grid-line`），用 radial mask 从顶部渐隐。纯 CSS，无图片。
-2. **点阵标记**：侧栏 `.brand h1::before` 与仪表盘 `.callout.hero-line::before` 共用「蓝图对位点」语汇。
-3. **编号系统**：页头 `.eyebrow-no`（与侧栏导航序号一致，`app.js` 的 `routeOrder` 决定）+ `h3.sec::before` 的 CSS 计数器（`.page { counter-reset: sec }`）。新增 `section()` 会自动编号，不要手动写序号。
-4. **层级色纪律扩展**：绿/琥珀/红仍专属证据分级。岗位 tier 色条因此改为 **S=紫（`--purple`）、A=靛、B/C=灰阶**（S 的徽章在 `renderJobCard` 里用 `b-pur`），避免 S 级绿色被误读为「一手证据」。
+1. **主题**：浅色默认（`:root`），深色挂 `body.dark`。CSS 内不允许再出现 `body.light` 选择器；特例一律写 `body.dark` 覆盖。
+2. **三个强调层级**：页面标题（`h2`）/ 当前交付（`.home-week`、`.home-deliver`）/ 主要行动（`.btn.primary`，每屏最多一个）。静态卡片不做按钮状，hover 反馈只属于可进入对象。
+3. **无装饰**：无底纹、无渐变文字、无章节编号、无英文标语 eyebrow。`section()` 支持第三参 `short`（右栏目录短名），正文标题保持全称。
+4. **层级色纪律不变**：绿/琥珀/红仍专属证据分级；岗位 tier 色条 S=紫、A=蓝、B/C=灰阶。
+5. **首页骨架**：`renderDashboard` = 本周交付卡 + 阶段行动（左）/ 进度 + 待补（右）→ 次级三卡（下一篇阅读/待确认前提/工程证据）→ 主线一句 → 三年 spine 收进折叠。六维评分、纠正卡、红线清单不在首页（分别归研究页、读研前提、求职准备）。
+6. **周选择路由**：`#reading/week/W<n>`（实施路线 §4-D5）。分发顺序：week → `READING_L2[sub]` → L1 回退；非法周次回退当前周。周详情一次只展示一周，当前周不重复出现。
+7. **危险操作**：「清空全部进度」在侧栏「本机设置」折叠内，两步确认（第一次点击变「再点一次确认清空」，5 秒超时还原）。
 
-其他约束：`.page-head h2` 的渐变文字包在 `@supports (background-clip: text)` 里，降级为纯色；`--topbar-h` 变更仍需同步锚点偏移；v1 遗留的无引用类（`.hero`、`.metric-grid`、`.split`、`.copy-block` 等）已在 v2 移除，确认无引用后才可删类。
+`--topbar-h` 变更仍需同步锚点偏移。删除装饰时留下的孤儿类（`.hero-line`、`.eyebrow`、`--grid-line` 引用）确认无引用后才可删。
 
 ---
 
@@ -342,7 +348,7 @@ v2 在 v1 令牌体系上叠加了四个签名元素，改样式时不要无意�
 | `rp.theme` | `'light'` / `'dark'` |
 | `rp.track` | 阅读页方向选择（A—F） |
 
-`state.checks` 存的就是各条目的稳定 `id`（`paper-common-*` / `paper-<方向>-*` / `paper-quiz-<ax>`（L3 盘问自测，2026-08-31 起）/ `plan90v2-*`（90 天计划勾选，2026-09-06 起带版本号；旧 `week-*` 条目留在 storage 作历史，任何新代码不得复用该前缀）/ `ap-*` / `atlas-*` / `cg-*` / `verify-*` / `monthly-*` / 技能 id）。读写全部走 `storeGet/storeSet/storeDel` 的 try/catch——**`file://` 下部分浏览器限制 localStorage，异常时静默降级为会话态**，不要把存储异常抛到页面上。侧栏的「重置进度」按钮清空 `rp.checks`。
+`state.checks` 存的就是各条目的稳定 `id`（`paper-common-*` / `paper-<方向>-*` / `paper-quiz-<ax>`（L3 盘问自测，2026-08-31 起）/ `plan90v2-*`（90 天计划勾选，2026-09-06 起带版本号；旧 `week-*` 条目留在 storage 作历史，任何新代码不得复用该前缀）/ `ap-*` / `atlas-*` / `cg-*` / `verify-*` / `monthly-*` / 技能 id）。读写全部走 `storeGet/storeSet/storeDel` 的 try/catch——**`file://` 下部分浏览器限制 localStorage，异常时静默降级为会话态**，不要把存储异常抛到页面上。侧栏「本机设置 → 清空全部进度」两步确认后清空 `rp.checks`（2026-09-06 起，防误触）。
 
 **不要改 id 命名规则**，否则已保存的勾选记录会全部失效。**2026-09-06 的一次性迁移**：方向重构让 18 篇论文换了轨道（level 前缀变化），app.js 的 `PAPER_MIGRATIONS` 把旧勾选 id 迁到新 id——只迁同一篇论文（正则限定 `paper-<level>-<ax>` 形态、目标无记录才改写、幂等）；`paper-quiz-*` 按 ax 不受影响；**`week-*` 一律不迁**（旧周任务的完成不得算作新周任务的完成；同日又发现同名复用问题——新计划的勾选 id 已升版 `plan90v2-*`，旧 `week-*` 只作历史保留）。迁移完全生效后这张表可以整体删除。仪表盘「进度总览」三条线（公共必读 x/12、90 天 y/12、核验 z/13）直接从 `state.checks` 计数，与持久化同批上线——若回滚持久化，务必同时摘掉进度卡，避免出现恒为 0 的空条。阅读 L2 的方向论文行与技能步骤如需逐项勾选，**必须新增 id**（如 `skill-eval-step-1`），禁止复用现有技能 id；当前实现未加单步勾选。
 

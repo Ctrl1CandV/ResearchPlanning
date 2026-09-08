@@ -59,7 +59,7 @@ const CASES = [
   {
     iso: '2026-08-29T10:00:00',
     expect: {
-      phase: '入学前',
+      phase: '开学之前',
       daysBadge: '距 入学 3 天',
       noWeekBadge: true,
       actions: ['第一封邮件', '公共必读前三篇', '学位成果要求', 'Atlas 全量测试']
@@ -70,7 +70,9 @@ const CASES = [
     expect: {
       phase: '研一上 · 90 天启动',
       weekBadge: 'W8',
-      actions: ['90 天计划 · W8', 'openEuler', '每月例行']
+      // v3 首页：本周交付卡直接给交付内容；行动卡保留 openEuler 与每月例行
+      weekDeliver: '本周要交什么 · W8',
+      actions: ['openEuler', '每月例行']
     }
   },
   {
@@ -78,7 +80,9 @@ const CASES = [
     expect: {
       phase: '暑期实习主投期',
       noWeekBadge: true,
-      actions: ['杭州、上海、深圳、广州', '每月例行']
+      // 日期≠完成：执行期已过必须报未验收数，禁止「已执行完」（设计说明 §5.1）
+      actions: ['杭州、上海、深圳、广州', '每月例行'],
+      unverified: '没有标记验收'
     }
   }
 ];
@@ -87,11 +91,14 @@ let failed = 0;
 for (const c of CASES) {
   const html = renderAt(c.iso);
   const problems = [];
-  if (!html.includes('class="now-card"')) problems.push('缺少当前阶段卡');
+  if (!html.includes('class="now-card"') && !html.includes('home-week')) problems.push('缺少当前阶段/本周卡');
   if (!html.includes(c.expect.phase)) problems.push('阶段名不符，期望含「' + c.expect.phase + '」');
   if (c.expect.daysBadge && !html.includes(c.expect.daysBadge)) problems.push('缺天数徽章「' + c.expect.daysBadge + '」');
   if (c.expect.weekBadge && !html.includes(c.expect.weekBadge)) problems.push('缺周次徽章「' + c.expect.weekBadge + '」');
   if (c.expect.noWeekBadge && /90 天计划 · W\d+/.test(html)) problems.push('不应出现周次徽章');
+  if (c.expect.weekDeliver && !html.includes(c.expect.weekDeliver)) problems.push('缺本周交付卡「' + c.expect.weekDeliver + '」');
+  if (c.expect.unverified && !html.includes(c.expect.unverified)) problems.push('缺未验收口径「' + c.expect.unverified + '」');
+  if (c.expect.unverified && /已执行完/.test(html)) problems.push('出现禁止的「已执行完」表述');
   for (const a of (c.expect.actions || [])) {
     if (!html.includes(a)) problems.push('缺行动项「' + a + '」');
   }

@@ -13,6 +13,11 @@
   }
   function text(v) { return escapeHtml(v == null ? '—' : v); }
   function badge(label, cls) { return '<span class="badge ' + (cls || 'b-dim') + '">' + escapeHtml(label) + '</span>'; }
+  /* 折叠块（与 app.js details 同行为：ref=true 为档案层降噪折叠；改动双处同步） */
+  function details(title, body, open, right, ref) {
+    return '<details class="acc' + (ref ? ' ref' : '') + '"' + (open ? ' open' : '') + '><summary>' + escapeHtml(title) +
+      '<span class="spacer"></span>' + (right || '') + '</summary><div class="acc-body">' + body + '</div></details>';
+  }
   function section(title, id) {
     return '<h3 class="sec"' + (id ? ' id="' + escapeHtml(id) + '"' : '') + '>' + escapeHtml(title) + '</h3>';
   }
@@ -38,7 +43,6 @@
   /* ── 常量副本（app.js 内部不可见，改动双处同步） ── */
   var TRACK_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
   var trackShort = { A: '任务完成验证', B: '交叉审查', C: '记忆评测', D: '图结构记忆', E: '代码基准审计', F: '记忆压缩' };
-  var ROUTE_NO = { dashboard: '00', baseline: '01', research: '02', reading: '03', tools: '04', jobs: '05', skills: '06', portfolio: '07', career: '08', verify: '09' };
   var ACT = {
     deep: { label: '精读', cls: 'act-deep', li: '' },
     scan: { label: '过一遍', cls: 'act-scan', li: ' class="scan"' },
@@ -81,6 +85,22 @@
     list.forEach(function (p, i) { if (p.ax === ax) idx = i; });
     return { prev: list[idx - 1] || null, next: list[idx + 1] || null };
   }
+  /* 前后篇按钮：有 ax 才生成站内卡链接；无 ax 的预印本给原文外链（绝无空 ID 路由，实施路线 §5.5） */
+  function sibLink(sib, dir, level) {
+    if (!sib) return '<span></span>';
+    var label = sib.t.length > 22 ? sib.t.slice(0, 22) + '…' : sib.t;
+    var title = ' title="' + escapeHtml(sib.t) + '"';
+    if (sib.ax) {
+      return dir < 0
+        ? '<a class="btn" href="#reading/' + escapeHtml(level) + '/' + escapeHtml(sib.ax) + '"' + title + '>← 上一篇 · ' + escapeHtml(label) + '</a>'
+        : '<a class="btn" href="#reading/' + escapeHtml(level) + '/' + escapeHtml(sib.ax) + '"' + title + '>' + escapeHtml(label) + ' · 下一篇 →</a>';
+    }
+    if (sib.srcUrl) {
+      return '<a class="btn" href="' + encodeURI(sib.srcUrl) + '" target="_blank" rel="noreferrer"' + title + '>' +
+        (dir < 0 ? '← 上一篇（站外预印本）' : '下一篇（站外预印本） →') + '</a>';
+    }
+    return '<a class="btn" href="#reading/' + escapeHtml(level) + '">返回目录</a>';
+  }
   function skillName(id) {
     var roadmap = (window.SKILLS && window.SKILLS.roadmap) || [];
     for (var i = 0; i < roadmap.length; i += 1) if (roadmap[i].id === id) return roadmap[i];
@@ -91,7 +111,7 @@
   function crumbHtml(level, entry) {
     var home = level === 'common' ? '公共必读' : '方向 ' + level + ' · ' + (trackShort[level] || level);
     var here = entry.t.length > 34 ? entry.t.slice(0, 34) + '…' : entry.t;
-    return '<nav class="crumb"><a href="#reading">阅读与 90 天启动</a><span>/</span>' +
+    return '<nav class="crumb"><a href="#reading">本周学习</a><span>/</span>' +
       '<a href="#reading/' + escapeHtml(level) + '">' + escapeHtml(home) + '</a><span class="crumb-here">/ ' + escapeHtml(here) + '</span></nav>';
   }
   function headerHtml(level, entry, card) {
@@ -102,19 +122,23 @@
     if (entry.key) badges += badge('必读', 'b-acc') + ' ';
     if (entry.warn) badges += badge('和别的方向撞题', 'b-low') + ' ';
     if (String(entry.y || '').indexOf('2026') === 0) badges += badge('2026 预印本 · 引用前复核', 'b-mid');
-    var lede = [entry.v, entry.y, entry.c == null ? null : 'cited ' + entry.c, entry.h]
+    var lede = [home, entry.n ? '第 ' + entry.n + ' 篇' : null, entry.v, entry.y,
+      entry.c == null ? null : 'cited ' + entry.c, entry.h]
       .filter(function (x) { return x != null && x !== ''; }).map(text).join(' · ');
-    var cardMissing = !card;
-    return '<header class="page-head l3-head"><div class="eyebrow"><span class="eyebrow-no">' +
-      (ROUTE_NO.reading || '03') + '</span>' + escapeHtml(home) +
-      (entry.n ? ' · 第 ' + escapeHtml(entry.n) + ' 篇' : '') + '</div>' +
+    return '<header class="page-head l3-head">' +
       '<h2>' + escapeHtml(entry.t) + '</h2>' +
       '<p class="lede">' + lede + (badges ? '　' + badges : '') + '</p></header>' +
       '<div class="l3-actions">' +
-      '<a class="btn" href="https://arxiv.org/abs/' + escapeHtml(entry.ax) + '" target="_blank" rel="noreferrer">📄 arXiv abs</a>' +
-      '<a class="btn" href="https://arxiv.org/html/' + escapeHtml(entry.ax) + '" target="_blank" rel="noreferrer">🌐 arXiv HTML（LaTeXML）</a>' +
+      // 防御：findEntry 按 ax 匹配，正常数据进不来无 ax 条目；但仍不给无 ax 的 entry 拼 arXiv 链接
+      // （qwen 审查 major-1：万一数据演化出无 ax 条目，应走 srcUrl，绝不生成 /abs/ 空链）
+      (entry.ax
+        ? '<a class="btn" href="https://arxiv.org/abs/' + escapeHtml(entry.ax) + '" target="_blank" rel="noreferrer">📄 arXiv abs</a>' +
+          '<a class="btn" href="https://arxiv.org/html/' + escapeHtml(entry.ax) + '" target="_blank" rel="noreferrer">🌐 arXiv HTML（LaTeXML）</a>'
+        : (entry.srcUrl
+          ? '<a class="btn" href="' + encodeURI(entry.srcUrl) + '" target="_blank" rel="noreferrer">🌐 原文外链（站外预印本）</a>'
+          : '')) +
       '<span class="mono-sm">本站不保存 PDF。卡片里标 § 的位置，指的是 arXiv HTML 版的章节。</span>' +
-      (cardMissing ? '' : '') + '</div>';
+      '</div>';
   }
 
   /* ── 通用块 ── */
@@ -140,15 +164,6 @@
   function deepBlocks(card, entry, checks) {
     var html = '';
     html += section('这篇在讲什么') + '<p class="l3-tldr">' + axLink(card.tldr || '') + '</p>';
-    if (card.sections && card.sections.length) {
-      html += section('各章都讲了什么（不用读原文的部分）') + '<dl class="l3-sec-list">';
-      card.sections.forEach(function (s) {
-        html += '<div class="l3-sec"><dt>§' + escapeHtml(s.k) + (s.t ? ' ' + escapeHtml(s.t) : '') +
-          (s.a ? ' <a href="' + escapeHtml(s.a) + '" target="_blank" rel="noreferrer" title="arXiv HTML 原节">↗</a>' : '') +
-          '</dt><dd>' + axLink(s.s || '') + '</dd></div>';
-      });
-      html += '</dl>';
-    }
     if (card.must && card.must.length) {
       html += section('原文里重点读这几处') + '<ul class="l3-must">';
       card.must.forEach(function (m) {
@@ -159,19 +174,28 @@
       });
       html += '</ul>';
     }
+    if (card.sections && card.sections.length) {
+      var secRows = '';
+      card.sections.forEach(function (s) {
+        secRows += '<div class="l3-sec"><dt>§' + escapeHtml(s.k) + (s.t ? ' ' + escapeHtml(s.t) : '') +
+          (s.a ? ' <a href="' + escapeHtml(s.a) + '" target="_blank" rel="noreferrer" title="arXiv HTML 原节">↗</a>' : '') +
+          '</dt><dd>' + axLink(s.s || '') + '</dd></div>';
+      });
+      html += details('各章都讲了什么（不用读原文的部分）', '<dl class="l3-sec-list">' + secRows + '</dl>', false, '', true);
+    }
     if (card.slices && card.slices.length) {
-      html += section('下面这些段落，值得对着原文读（公式在这里只是纯文本，排版以原文为准）') + '<div class="card">';
+      var sliceRows = '';
       card.slices.forEach(function (s) {
-        html += '<blockquote class="l3-slice">' + escapeHtml(s.q || '') +
+        sliceRows += '<blockquote class="l3-slice">' + escapeHtml(s.q || '') +
           '<span class="where">§' + escapeHtml(s.k) + (s.t ? ' · ' + escapeHtml(s.t) : '') +
           (s.a ? ' · <a href="' + escapeHtml(s.a) + '" target="_blank" rel="noreferrer">原文锚点</a>' : '') + '</span></blockquote>';
       });
-      html += '</div>';
+      html += details('值得对着原文读的段落（公式是纯文本，排版以原文为准）', '<div class="card">' + sliceRows + '</div>', false, '', true);
     }
     if (card.link && (card.link.week || (card.link.skills && card.link.skills.length))) {
       html += section('它用在哪里') + '<div class="ws-group">';
       if (card.link.week) {
-        html += '<span class="ws-label">90 天里的周次</span><a class="ws-chip" href="#reading" data-anchor="week-item-' + escapeHtml(card.link.week) + '">' + escapeHtml(card.link.week) + '</a>';
+        html += '<span class="ws-label">90 天里的周次</span><a class="ws-chip" href="#reading/week/' + escapeHtml(card.link.week) + '">' + escapeHtml(card.link.week) + '</a>';
       }
       html += '</div>';
       if (card.link.skills && card.link.skills.length) {
@@ -208,13 +232,13 @@
       locBlock(entry, level === 'common' ? '为什么在主线公共必读里' : '为什么在这条路线里');
 
     if (card && !skim) {
+      html += unreadHtml(card.unread);
       html += deepBlocks(card, entry, checks);
       html += section('读完打卡') + checkHtml('paper-' + level + '-' + entry.ax, '已读：' + entry.t, checks.has('paper-' + level + '-' + entry.ax));
-      html += unreadHtml(card.unread);
     } else if (skim) {
+      html += unreadHtml(null);
       html += skimBlocks(skim);
       html += section('读过打卡') + checkHtml('paper-' + level + '-' + entry.ax, '已读：' + entry.t, checks.has('paper-' + level + '-' + entry.ax));
-      html += unreadHtml(null);
     } else {
       html += '<div class="callout warn"><span class="t">阅读卡待生成</span>' +
         '这篇论文还没有导读卡。现在可以先用上面的 arXiv 链接读原文；' +
@@ -225,11 +249,7 @@
     var sib = siblings(level, ax);
     var mid = '<a class="btn l3-nav-mid" href="#reading/' + escapeHtml(level) + '">返回 ' +
       escapeHtml(level === 'common' ? '公共必读' : '方向 ' + level) + '</a>';
-    html += '<div class="l3-nav">' +
-      (sib.prev ? '<a class="btn" href="#reading/' + escapeHtml(level) + '/' + escapeHtml(sib.prev.ax) + '" title="' + escapeHtml(sib.prev.t) + '">← 上一篇 · ' + escapeHtml(sib.prev.t.length > 22 ? sib.prev.t.slice(0, 22) + '…' : sib.prev.t) + '</a>' : '<span></span>') +
-      mid +
-      (sib.next ? '<a class="btn" href="#reading/' + escapeHtml(level) + '/' + escapeHtml(sib.next.ax) + '" title="' + escapeHtml(sib.next.t) + '">' + escapeHtml(sib.next.t.length > 22 ? sib.next.t.slice(0, 22) + '…' : sib.next.t) + ' · 下一篇 →</a>' : '<span></span>') +
-      '</div>';
+    html += '<div class="l3-nav">' + sibLink(sib.prev, -1, level) + mid + sibLink(sib.next, 1, level) + '</div>';
 
     return html + '</div>';
   }
